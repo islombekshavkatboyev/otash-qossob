@@ -60,6 +60,11 @@ npm run bot
   - **Admin 1:** `6985755311` (@Otabek07092000)
   - **Admin 2:** `8774620555`
 
+### ⚡ 24/7 Rejim (Kompyuter o'chiq bo'lganda ham ishlashi):
+Bot Vercel bulutida **Telegram Webhook** orqali ishlaydi (`https://otash-qossob.vercel.app/api/telegram/webhook`).
+- Siz noutbuk yoki kompyuteringizni o'chirib qo'ysangiz ham, Telegram har bir xabar va tugma bosilishini to'g'ridan-to'g'ri Vercel bulutiga uzatadi.
+- Shu sababli kompyuterda `npm run bot` ni yoqib o'tirish shart emas — bot kunu-tun (24/7) avtomatik ishlaydi!
+
 ### Botning asosiy imkoniyatlari:
 1. **Parallel yangi buyurtma bildirishnomasi:** Saytdan yangi buyurtma tushganda ikkala adminga parallel xabar va Google Maps pin jo'natiladi.
 2. **Botda interaktiv boshqaruv:** Adminlar xabar ostidagi `✅ Qabul qilish`, `👨‍🍳 Tayyorlash`, `🚗 Kuryer yo'lda`, `✓ Yetkazildi` tugmalari orqali buyurtma holatini Telegram'dan chiqmasdan boshqara oladi.
