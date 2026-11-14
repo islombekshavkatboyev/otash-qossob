@@ -75,6 +75,19 @@ export async function POST(req: Request) {
         const orders = readOrders();
         let orderIdx = orders.findIndex((o: any) => o.id === orderId);
 
+        if (orderIdx !== -1 && orders[orderIdx].status === newStatus) {
+          const st = STATUS_LABELS[newStatus] || STATUS_LABELS.new;
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              callback_query_id: cq.id,
+              text: `Holat allaqachon: ${st.label}`,
+            }),
+          }).catch(() => {});
+          return NextResponse.json({ ok: true });
+        }
+
         if (orderIdx === -1) {
           const msgText = cq.message?.text || '';
           const reconstructed = parseOrderFromMessage(msgText, orderId);

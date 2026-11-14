@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { orderId, status } = await req.json();
+    const { orderId, status, skipTelegram } = await req.json();
     if (!orderId || !status) {
       return NextResponse.json({ error: 'orderId and status required' }, { status: 400 });
     }
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
 
     const idx = orders.findIndex((o: any) => o.id === orderId);
     if (idx !== -1) {
+      const prevStatus = orders[idx].status;
       orders[idx].status = status;
       writeOrders(orders);
 
@@ -28,8 +29,8 @@ export async function POST(req: Request) {
         ...String(rawAdminChatId).split(',').map(s => s.trim()),
       ])).filter(Boolean);
 
-      // Faqat mijozning o'ziga yuboriladi (adminga mijoz xabarlarini tashlamaydi!)
-      if (targetChatId && !adminChatIds.map(String).includes(String(targetChatId)) && botToken) {
+      // Agar bot allaqachon xabar yuborgan bo'lsa (skipTelegram) yoki holat o'zgarmagan bo'lsa, qayta yuborilmaydi!
+      if (!skipTelegram && prevStatus !== status && targetChatId && !adminChatIds.map(String).includes(String(targetChatId)) && botToken) {
         if (status === 'done') {
           const rateText = [
             `🎉 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>`,

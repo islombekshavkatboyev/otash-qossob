@@ -724,18 +724,25 @@ async function handleCallbackQuery(cq) {
       orderIdx = 0;
     }
 
+    const prevStatus = orders[orderIdx].status;
+    const st = STATUS_LABELS[newStatus] || STATUS_LABELS.new;
+
+    if (prevStatus === newStatus) {
+      await answerCallbackQuery(cq.id, `Holat allaqachon: ${st.label}`, false);
+      return;
+    }
+
     orders[orderIdx].status = newStatus;
     saveOrders(orders);
     const order = orders[orderIdx];
-    const st = STATUS_LABELS[newStatus] || STATUS_LABELS.new;
 
     await answerCallbackQuery(cq.id, `✅ Holat: ${st.label}`, false);
 
-    // Sync status back to Vercel API
+    // Sync status back to Vercel API without duplicate Telegram notification
     fetch('https://otash-qossob.vercel.app/api/orders/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: order.id, status: newStatus }),
+      body: JSON.stringify({ orderId: order.id, status: newStatus, skipTelegram: true }),
     }).catch(() => {});
 
     // Edit message in current chat
