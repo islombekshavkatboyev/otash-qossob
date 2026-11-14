@@ -144,6 +144,33 @@ const REQUEST_CONTACT_KEYBOARD = {
 // User interaction state (e.g. waiting for order id)
 const userStates = new Map();
 
+function parseOrderFromMessage(text, orderId) {
+  const nameMatch = text.match(/Mijoz:\s*([^\n]+)/i);
+  const phoneMatch = text.match(/Telefon:\s*([^\n]+)/i);
+  const addressMatch = text.match(/Manzil:\s*([^\n]+)/i);
+  const payMatch = text.match(/To'lov turi:\s*([^\n]+)/i);
+  const noteMatch = text.match(/Izoh:\s*([^\n]+)/i);
+  const totalMatch = text.match(/JAMI TO'LOV:\s*([^\n]+)/i);
+
+  const cleanTotal = totalMatch ? parseInt(totalMatch[1].replace(/\D/g, ''), 10) || 0 : 0;
+
+  return {
+    id: orderId,
+    customerName: nameMatch ? nameMatch[1].trim() : 'Mijoz',
+    phone: phoneMatch ? phoneMatch[1].trim() : '',
+    address: addressMatch ? addressMatch[1].trim() : 'Yetkazib berish',
+    deliveryType: 'delivery',
+    deliveryZone: 'samarqand',
+    paymentType: payMatch && payMatch[1].toLowerCase().includes('karta') ? 'card' : 'cash',
+    note: noteMatch ? noteMatch[1].trim() : '',
+    totalPrice: cleanTotal,
+    deliveryPrice: 0,
+    status: 'new',
+    createdAt: new Date().toISOString(),
+    items: [],
+  };
+}
+
 // ─── Helper: Get Order Text ─────────────────────────────────
 function getOrderCardText(order) {
   const st = STATUS_LABELS[order.status] || STATUS_LABELS.new;
@@ -583,12 +610,32 @@ async function handleCallbackQuery(cq) {
   // 2. Status change by Admin: st:<status>:<orderId>
   if (data.startsWith('st:')) {
     const [, newStatus, orderId] = data.split(':');
-    const orders = getOrders();
-    const orderIdx = orders.findIndex(o => o.id === orderId);
+    let orders = getOrders();
+    let orderIdx = orders.findIndex(o => o.id === orderId);
 
+    // If order not found locally, try fetching from Vercel remote API
     if (orderIdx === -1) {
-      await answerCallbackQuery(cq.id, '❌ Buyurtma topilmadi', true);
-      return;
+      try {
+        const res = await fetch('https://otash-qossob.vercel.app/api/orders');
+        const remoteOrders = await res.json();
+        if (Array.isArray(remoteOrders)) {
+          for (const ro of remoteOrders) {
+            if (!orders.some(lo => lo.id === ro.id)) orders.push(ro);
+          }
+          saveOrders(orders);
+          orderIdx = orders.findIndex(o => o.id === orderId);
+        }
+      } catch {}
+    }
+
+    // If still not in database, reconstruct directly from Telegram message text!
+    if (orderIdx === -1) {
+      const msgText = cq.message?.text || '';
+      const reconstructed = parseOrderFromMessage(msgText, orderId);
+      reconstructed.status = newStatus;
+      orders.unshift(reconstructed);
+      saveOrders(orders);
+      orderIdx = 0;
     }
 
     orders[orderIdx].status = newStatus;
@@ -596,7 +643,14 @@ async function handleCallbackQuery(cq) {
     const order = orders[orderIdx];
     const st = STATUS_LABELS[newStatus] || STATUS_LABELS.new;
 
-    await answerCallbackQuery(cq.id, `✅ Holat o'zgardi: ${st.label}`, false);
+    await answerCallbackQuery(cq.id, `✅ Holat: ${st.label}`, false);
+
+    // Sync status back to Vercel API
+    fetch('https://otash-qossob.vercel.app/api/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: order.id, status: newStatus }),
+    }).catch(() => {});
 
     // Edit message in current chat
     const updatedCardText = getOrderCardText(order);

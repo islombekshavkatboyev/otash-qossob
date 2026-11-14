@@ -63,3 +63,26 @@ export function writeOrders(orders: any[]): void {
     console.error('Error writing orders:', err);
   }
 }
+
+export function readReviews(): any[] {
+  try {
+    const file = getReviewsFilePath();
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    }
+  } catch (err) {
+    console.error('Error reading reviews:', err);
+  }
+  return [];
+}
+
+export function writeReviews(reviews: any[]): void {
+  try {
+    const file = getReviewsFilePath();
+    const dir = path.dirname(file);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(reviews, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error writing reviews:', err);
+  }
+}
