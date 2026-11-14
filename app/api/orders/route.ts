@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readOrders } from '../../lib/db';
 
-const ORDERS_FILE = path.join(process.cwd(), 'data', 'orders.json');
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    if (fs.existsSync(ORDERS_FILE)) {
-      const orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-      return NextResponse.json(orders);
-    }
-    return NextResponse.json([]);
+    const orders = readOrders();
+    return NextResponse.json(orders);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

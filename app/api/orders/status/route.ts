@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readOrders, writeOrders } from '../../../lib/db';
 
-const ORDERS_FILE = path.join(process.cwd(), 'data', 'orders.json');
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -11,15 +10,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'orderId and status required' }, { status: 400 });
     }
 
-    let orders = [];
-    if (fs.existsSync(ORDERS_FILE)) {
-      orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-    }
+    let orders = readOrders();
 
     const idx = orders.findIndex((o: any) => o.id === orderId);
     if (idx !== -1) {
       orders[idx].status = status;
-      fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8');
+      writeOrders(orders);
 
       const order = orders[idx];
       const botToken = process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';

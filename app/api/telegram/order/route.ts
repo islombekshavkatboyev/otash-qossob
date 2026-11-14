@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readOrders, writeOrders } from '../../../lib/db';
 
-const ORDERS_FILE = path.join(process.cwd(), 'data', 'orders.json');
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -11,20 +10,17 @@ export async function POST(req: Request) {
     const chatId = body.chatId || process.env.TELEGRAM_CHAT_ID || '6985755311';
     const text = body.text;
 
-    // Save order to data/orders.json if provided
+    // Save order if provided
     if (body.order) {
       try {
-        let orders = [];
-        if (fs.existsSync(ORDERS_FILE)) {
-          orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-        }
+        const orders = readOrders();
         const exists = orders.some((o: any) => o.id === body.order.id);
         if (!exists) {
           orders.unshift(body.order);
-          fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8');
+          writeOrders(orders);
         }
       } catch (e) {
-        console.error('Error writing orders.json:', e);
+        console.error('Error saving order:', e);
       }
     }
 
