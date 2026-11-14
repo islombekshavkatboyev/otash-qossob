@@ -60,7 +60,7 @@ const fmt = (n) => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g
 const STATUS_LABELS = {
   new: { label: 'Yangi qabul qilindi', emoji: '🆕', desc: 'Operator tomonidan tekshirilmoqda' },
   confirmed: { label: 'Tasdiqlandi', emoji: '✅', desc: 'Buyurtmangiz qabul qilindi' },
-  cooking: { label: 'Tayyorlanmoqda', emoji: '👨‍🍳', desc: 'Sifatli go\'sht kesilib, qadoqlanmoqda' },
+  cooking: { label: 'Tayyorlanmoqda', emoji: '👨‍🍳', desc: 'Sifatli go\'sht saralanib, qadoqlanmoqda' },
   delivering: { label: 'Yetkazilmoqda (Yo\'lda)', emoji: '🚗', desc: 'Kuryerimiz uyingiz tomon yo\'lda' },
   done: { label: 'Yetkazib berildi', emoji: '✓', desc: 'Buyurtma muvaffaqiyatli topshirildi' },
   cancelled: { label: 'Bekor qilingan', emoji: '❌', desc: 'Buyurtma bekor qilingan' },
@@ -113,20 +113,28 @@ async function answerCallbackQuery(callbackQueryId, text = '', showAlert = false
 }
 
 // ─── Keyboards ───────────────────────────────────────────────
-const MAIN_KEYBOARD = {
-  reply_markup: {
-    keyboard: [
-      [{ text: '📦 Buyurtmam holati' }, { text: '🥩 Mahsulotlar narxi' }],
-      [{ text: '🛒 Do\'konga kirish (Sayt)' }, { text: '📞 Aloqa va Manzil' }],
-    ],
-    resize_keyboard: true,
-  },
-};
+function getMainKeyboard(chatId) {
+  const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
+  const rows = [
+    [{ text: '📦 Buyurtmam holati' }, { text: '🥩 Mahsulotlar narxi' }],
+    [{ text: '🛒 Do\'konga kirish (Sayt)' }, { text: '📞 Aloqa va Manzil' }],
+  ];
+  if (isAdmin) {
+    rows.unshift([{ text: '📋 Barcha buyurtmalar (Admin)' }]);
+  }
+  return {
+    reply_markup: {
+      keyboard: rows,
+      resize_keyboard: true,
+    },
+  };
+}
 
 const REQUEST_CONTACT_KEYBOARD = {
   reply_markup: {
     keyboard: [
       [{ text: '📱 Telefon raqamimni yuborish', request_contact: true }],
+      [{ text: '📍 Lokatsiyamni yuborish', request_location: true }],
       [{ text: '🔙 Bosh menyu' }],
     ],
     resize_keyboard: true,
@@ -136,6 +144,98 @@ const REQUEST_CONTACT_KEYBOARD = {
 // User interaction state (e.g. waiting for order id)
 const userStates = new Map();
 
+// ─── Helper: Get Order Text ─────────────────────────────────
+function getOrderCardText(order) {
+  const st = STATUS_LABELS[order.status] || STATUS_LABELS.new;
+
+  let itemsText = '';
+  if (Array.isArray(order.items)) {
+    itemsText = order.items
+      .map(i => {
+        const pName = i.product?.name || i.productName || 'Go\'sht';
+        const w = i.weightG ? (i.weightG >= 1000 ? `${i.weightG / 1000} kg` : `${i.weightG} g`) : '';
+        const pr = i.product?.price ? (i.product.price * (i.weightG || 1000)) / 1000 : i.price || 0;
+        return `  • <b>${pName}</b> ${w ? `(${w})` : ''} — ${fmt(pr)} so'm`;
+      })
+      .join('\n');
+  }
+
+  const lines = [
+    `📦 <b>BUYURTMA: <code>${order.id}</code></b>`,
+    '',
+    `📊 <b>Holati:</b> ${st.emoji} <b>${st.label}</b>`,
+    `ℹ️ <i>${st.desc}</i>`,
+    '',
+    `👤 <b>Mijoz:</b> ${order.customerName || 'Mijoz'}`,
+    `📞 <b>Tel:</b> ${order.phone || ''}`,
+    `🏠 <b>Manzil:</b> ${order.address || 'Yetkazib berish'}`,
+    order.deliveryZone ? `🗺️ <b>Zona:</b> ${order.deliveryZone === 'samarqand' ? 'Samarqand shahri' : 'Urgut tumani'}` : '',
+    `💳 <b>To'lov turi:</b> ${order.paymentType === 'cash' ? '💵 Naqd pul' : '💳 Karta'}`,
+    order.note ? `📝 <b>Izoh:</b> ${order.note}` : '',
+    '',
+    `🥩 <b>Tanlangan mahsulotlar:</b>`,
+    itemsText || '  • Go\'sht mahsulotlari',
+    '',
+    order.deliveryPrice ? `🚗 <b>Yetkazib berish:</b> ${fmt(order.deliveryPrice)} so'm` : '',
+    `💰 <b>JAMI SUMMA:</b> <b>${fmt(order.totalPrice + (order.deliveryPrice || 0))} so'm</b>`,
+    order.location?.mapsLink ? `\n📍 <b>GPS Lokatsiya:</b> <a href="${order.location.mapsLink}">Google Xaritada ko'rish 🗺️</a>` : '',
+  ].filter(Boolean);
+
+  if (order.status === 'done' && !order.rated) {
+    lines.push('');
+    lines.push('🎉 <b>Buyurtmangiz yetkazildi!</b>');
+    lines.push('Iltimos, go\'sht sifati va yetkazish xizmatimizni baholang:');
+  } else if (order.rated) {
+    lines.push('');
+    lines.push(`⭐ <b>Baho berilgan:</b> ${'★'.repeat(order.rating || 5)} (${order.rating || 5}/5) — Rahmat!`);
+  }
+
+  return lines.join('\n');
+}
+
+function getOrderInlineKeyboard(order, isAdmin) {
+  if (isAdmin) {
+    const rows = [
+      [
+        { text: '✅ Qabul qilish', callback_data: `st:confirmed:${order.id}` },
+        { text: '👨‍🍳 Tayyorlash', callback_data: `st:cooking:${order.id}` },
+      ],
+      [
+        { text: '🚗 Kuryer yo\'lda', callback_data: `st:delivering:${order.id}` },
+        { text: '✓ Yetkazildi', callback_data: `st:done:${order.id}` },
+      ],
+    ];
+    const subRow = [];
+    if (order.location?.mapsLink) {
+      subRow.push({ text: '📍 Xarita 🗺️', url: order.location.mapsLink });
+    }
+    subRow.push({ text: '❌ Bekor qilish', callback_data: `st:cancelled:${order.id}` });
+    rows.push(subRow);
+    return rows;
+  }
+
+  // Customer keyboard
+  if (order.status === 'done' && !order.rated) {
+    return [
+      [
+        { text: '⭐ 5 (A\'lo)', callback_data: `rate:5:${order.id}` },
+        { text: '⭐ 4 (Yaxshi)', callback_data: `rate:4:${order.id}` },
+      ],
+      [
+        { text: '⭐ 3 (O\'rtacha)', callback_data: `rate:3:${order.id}` },
+        { text: '⭐ 2', callback_data: `rate:2:${order.id}` },
+        { text: '⭐ 1', callback_data: `rate:1:${order.id}` },
+      ],
+    ];
+  }
+
+  if (order.location?.mapsLink) {
+    return [[{ text: '📍 Xaritada ko\'rish 🗺️', url: order.location.mapsLink }]];
+  }
+
+  return null;
+}
+
 // ─── Message Handlers ────────────────────────────────────────
 async function handleMessage(msg) {
   const chatId = msg.chat?.id;
@@ -144,10 +244,55 @@ async function handleMessage(msg) {
 
   if (!chatId) return;
 
-  // Contact shared
+  // 1. Contact shared
   if (msg.contact?.phone_number) {
     const rawPhone = msg.contact.phone_number.replace(/\D/g, '');
     await showOrderByPhone(chatId, rawPhone, userName);
+    userStates.delete(chatId);
+    return;
+  }
+
+  // 2. Location shared (📍 GPS lokatsiya yuborildi)
+  if (msg.location) {
+    const { latitude, longitude } = msg.location;
+    const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+
+    const orders = getOrders();
+    const userOrder = orders.find(
+      o => (String(o.chatId) === String(chatId) || (msg.from?.id && String(o.chatId) === String(msg.from.id))) &&
+           o.status !== 'done' && o.status !== 'cancelled'
+    ) || orders[0];
+
+    if (userOrder) {
+      userOrder.location = { lat: latitude, lng: longitude, mapsLink };
+      if (!userOrder.chatId) userOrder.chatId = chatId;
+      saveOrders(orders);
+
+      await sendMessage(
+        chatId,
+        `📍 <b>Lokatsiyangiz qabul qilindi va buyurtmaga biriktirildi!</b>\n\n📦 <b>Buyurtma ID:</b> <code>#${userOrder.id}</code>\n🔗 <a href="${mapsLink}">Google Xaritada ko'rish 🗺️</a>\n\nKuryerimiz siz yuborgan aniq manzil bo'yicha yetkazib beradi!`,
+        getMainKeyboard(chatId)
+      );
+
+      // Forward to Admin
+      if (ADMIN_CHAT_ID && String(chatId) !== String(ADMIN_CHAT_ID)) {
+        await sendMessage(
+          ADMIN_CHAT_ID,
+          `📍 <b>MIJOZDAN YANGI LOKATSIYA KELDI!</b>\n\n👤 Mijoz: <b>${userOrder.customerName || userName}</b>\n📞 Tel: <b>${userOrder.phone}</b>\n📦 Buyurtma: <code>#${userOrder.id}</code>\n🔗 <a href="${mapsLink}">Google Xaritada ochish 🗺️</a>`
+        );
+        await api('sendLocation', {
+          chat_id: ADMIN_CHAT_ID,
+          latitude,
+          longitude,
+        });
+      }
+    } else {
+      await sendMessage(
+        chatId,
+        `📍 <b>Lokatsiyangiz qabul qilindi:</b>\n<a href="${mapsLink}">Xaritada ochish 🗺️</a>`,
+        getMainKeyboard(chatId)
+      );
+    }
     userStates.delete(chatId);
     return;
   }
@@ -166,6 +311,7 @@ async function handleMessage(msg) {
       return;
     }
 
+    const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
     const welcome = [
       `🥩 <b>Assalomu alaykum, ${userName}!</b>`,
       '',
@@ -173,13 +319,31 @@ async function handleMessage(msg) {
       '',
       `Bu yerda siz:`,
       `• 🥩 Yangi va halol go'sht turlari narxini ko'rishingiz`,
-      `• 📦 Buyurtmangiz tarkibi va <b>holatini (status)</b> kuzatishingiz`,
+      `• 📦 Buyurtmangiz tarkibi, <b>GPS lokatsiyasi</b> va <b>holatini (status)</b> kuzatishingiz`,
       `• ⭐ Yetkazib berilgach, sifat va xizmatimizni <b>baholashingiz</b> mumkin!`,
+      isAdmin ? '\n👨‍💼 <i>Siz tizimda Administrator sifatida tanildingiz. Barcha buyurtmalarni boshqarishingiz mumkin.</i>' : '',
       '',
       `Quyidagi tugmalardan birini tanlang:`,
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
-    await sendMessage(chatId, welcome, MAIN_KEYBOARD);
+    await sendMessage(chatId, welcome, getMainKeyboard(chatId));
+    return;
+  }
+
+  // Admin: Barcha buyurtmalar
+  if (lower.includes('barcha buyurtmalar') || lower === '/orders' || lower === '/admin') {
+    const orders = getOrders();
+    if (orders.length === 0) {
+      await sendMessage(chatId, `📭 Hozircha hech qanday buyurtma mavjud emas.`, getMainKeyboard(chatId));
+      return;
+    }
+
+    const recent = orders.slice(0, 5);
+    await sendMessage(chatId, `📋 <b>Oxirgi ${recent.length} ta buyurtmalar:</b>`);
+
+    for (const ord of recent) {
+      await sendOrderCard(chatId, ord);
+    }
     return;
   }
 
@@ -189,9 +353,9 @@ async function handleMessage(msg) {
     const prompt = [
       `🔍 <b>Buyurtma holatini tekshirish:</b>`,
       '',
-      `Iltimos, <b>telefon raqamingizni</b> yuboring yoki buyurtma berganingizda berilgan <b>ID raqamni</b> kiriting (masalan: <code>HG-20261114-102</code>).`,
+      `Iltimos, <b>telefon raqamingizni</b> yuboring yoki buyurtma berganingizda berilgan <b>ID raqamni</b> kiriting (masalan: <code>HG-261114-120</code>).`,
       '',
-      `Pastdagi <b>"📱 Telefon raqamimni yuborish"</b> tugmasini bosishingiz ham mumkin:`,
+      `Pastdagi tugmalar orqali telefon yoki lokatsiyangizni ham yuborishingiz mumkin:`,
     ].join('\n');
 
     await sendMessage(chatId, prompt, REQUEST_CONTACT_KEYBOARD);
@@ -304,7 +468,7 @@ async function handleMessage(msg) {
   await sendMessage(
     chatId,
     `Tushunarsiz buyruq. Iltimos, pastdagi menyu tugmalaridan birini tanlang:`,
-    MAIN_KEYBOARD
+    getMainKeyboard(chatId)
   );
 }
 
@@ -313,7 +477,6 @@ async function showOrderByIdOrPhone(chatId, query, userName) {
   const orders = getOrders();
   const cleanQ = query.replace(/\D/g, '');
 
-  // Match by order ID or phone
   const matched = orders.filter(o => {
     if (o.id && o.id.toLowerCase() === query.toLowerCase()) return true;
     if (cleanQ && o.phone && o.phone.replace(/\D/g, '').includes(cleanQ)) return true;
@@ -324,12 +487,11 @@ async function showOrderByIdOrPhone(chatId, query, userName) {
     await sendMessage(
       chatId,
       `❌ <b>Buyurtma topilmadi.</b>\n\nKiritilgan ma'lumot: <code>${query}</code>\nIltimos, buyurtma ID raqami yoki buyurtma bergan telefoningizni to'g'ri kiriting.`,
-      MAIN_KEYBOARD
+      getMainKeyboard(chatId)
     );
     return;
   }
 
-  // Show latest matched order and link chatId
   const order = matched[0];
   if (order.chatId !== chatId) {
     order.chatId = chatId;
@@ -346,7 +508,7 @@ async function showOrderByPhone(chatId, cleanPhone, userName) {
     await sendMessage(
       chatId,
       `❌ Ushbu <b>+${cleanPhone}</b> raqamiga tegishli buyurtma topilmadi.\n\nAgar saytda boshqa raqam bilan buyurtma bergan bo'lsangiz, buyurtma ID raqamini (masalan: <code>HG-...</code>) yozib yuboring.`,
-      MAIN_KEYBOARD
+      getMainKeyboard(chatId)
     );
     return;
   }
@@ -360,91 +522,138 @@ async function showOrderByPhone(chatId, cleanPhone, userName) {
 }
 
 async function sendOrderCard(chatId, order) {
-  const st = STATUS_LABELS[order.status] || STATUS_LABELS.new;
-
-  let itemsText = '';
-  if (Array.isArray(order.items)) {
-    itemsText = order.items
-      .map(i => {
-        const pName = i.product?.name || i.productName || 'Go\'sht';
-        const w = i.weightG ? (i.weightG >= 1000 ? `${i.weightG / 1000} kg` : `${i.weightG} g`) : '';
-        const pr = i.product?.price ? (i.product.price * (i.weightG || 1000)) / 1000 : i.price || 0;
-        return `  • <b>${pName}</b> ${w ? `(${w})` : ''} — ${fmt(pr)} so'm`;
-      })
-      .join('\n');
-  }
-
-  const lines = [
-    `📦 <b>BUYURTMA: <code>${order.id}</code></b>`,
-    '',
-    `📊 <b>Holati:</b> ${st.emoji} <b>${st.label}</b>`,
-    `ℹ️ <i>${st.desc}</i>`,
-    '',
-    `👤 <b>Mijoz:</b> ${order.customerName || 'Mijoz'}`,
-    `📞 <b>Tel:</b> ${order.phone || ''}`,
-    `🏠 <b>Manzil:</b> ${order.address || 'Yetkazib berish'}`,
-    `💳 <b>To'lov:</b> ${order.paymentType === 'cash' ? 'Naqd pul' : 'Karta'}`,
-    '',
-    `🥩 <b>Tanlangan mahsulotlar:</b>`,
-    itemsText || '  • Go\'sht mahsulotlari',
-    '',
-    order.deliveryPrice ? `🚗 <b>Yetkazib berish:</b> ${fmt(order.deliveryPrice)} so'm` : '',
-    `💰 <b>JAMI SUMMA:</b> <b>${fmt(order.totalPrice + (order.deliveryPrice || 0))} so'm</b>`,
-  ].filter(Boolean);
+  const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
+  const cardText = getOrderCardText(order);
+  const inlineRows = getOrderInlineKeyboard(order, isAdmin);
 
   const extra = {};
-
-  // If order is done (yetkazildi), provide interactive star rating buttons!
-  if (order.status === 'done' && !order.rated) {
-    lines.push('');
-    lines.push('🎉 <b>Buyurtmangiz yetkazildi!</b>');
-    lines.push('Iltimos, go\'sht sifati va yetkazish xizmatimizni baholang:');
-
-    extra.reply_markup = {
-      inline_keyboard: [
-        [
-          { text: '⭐ 5 (A\'lo)', callback_data: `rate:5:${order.id}` },
-          { text: '⭐ 4 (Yaxshi)', callback_data: `rate:4:${order.id}` },
-        ],
-        [
-          { text: '⭐ 3 (O\'rtacha)', callback_data: `rate:3:${order.id}` },
-          { text: '⭐ 2', callback_data: `rate:2:${order.id}` },
-          { text: '⭐ 1', callback_data: `rate:1:${order.id}` },
-        ],
-      ],
-    };
-  } else if (order.rated) {
-    lines.push('');
-    lines.push(`⭐ <b>Baho berilgan:</b> ${'★'.repeat(order.rating || 5)} (${order.rating || 5}/5) — Rahmat!`);
+  if (inlineRows && inlineRows.length > 0) {
+    extra.reply_markup = { inline_keyboard: inlineRows };
   }
 
-  await sendMessage(chatId, lines.join('\n'), {
+  await sendMessage(chatId, cardText, {
     ...extra,
-    ...MAIN_KEYBOARD,
+    ...getMainKeyboard(chatId),
   });
+
+  // If order has coordinates, send native Telegram map pin!
+  if (order.location?.lat && order.location?.lng) {
+    await api('sendLocation', {
+      chat_id: chatId,
+      latitude: order.location.lat,
+      longitude: order.location.lng,
+    }).catch(() => {});
+  }
 }
 
-// ─── Callback Query (Yulduzcha bosilganda) ─────────────────────
+// ─── Callback Query (Status & Rating Handler) ─────────────────
 async function handleCallbackQuery(cq) {
   const data = cq.data || '';
   const chatId = cq.message?.chat?.id;
   const messageId = cq.message?.message_id;
   const userFirst = cq.from?.first_name || 'Mijoz';
 
+  // 1. Check status prompt
   if (data === 'check_status') {
     userStates.set(chatId, 'WAITING_ORDER_SEARCH');
     await answerCallbackQuery(cq.id);
     const prompt = [
       `🔍 <b>Buyurtma holatini tekshirish:</b>`,
       '',
-      `Iltimos, <b>telefon raqamingizni</b> yuboring yoki buyurtma berganingizda berilgan <b>ID raqamni</b> kiriting (masalan: <code>HG-20261114-102</code>).`,
+      `Iltimos, <b>telefon raqamingizni</b> yuboring yoki buyurtma berganingizda berilgan <b>ID raqamni</b> kiriting (masalan: <code>HG-261114-120</code>).`,
       '',
-      `Pastdagi <b>"📱 Telefon raqamimni yuborish"</b> tugmasini bosishingiz ham mumkin:`,
+      `Pastdagi tugmalar orqali telefon yoki lokatsiyangizni ham yuborishingiz mumkin:`,
     ].join('\n');
     await sendMessage(chatId, prompt, REQUEST_CONTACT_KEYBOARD);
     return;
   }
 
+  // 2. Status change by Admin: st:<status>:<orderId>
+  if (data.startsWith('st:')) {
+    const [, newStatus, orderId] = data.split(':');
+    const orders = getOrders();
+    const orderIdx = orders.findIndex(o => o.id === orderId);
+
+    if (orderIdx === -1) {
+      await answerCallbackQuery(cq.id, '❌ Buyurtma topilmadi', true);
+      return;
+    }
+
+    orders[orderIdx].status = newStatus;
+    saveOrders(orders);
+    const order = orders[orderIdx];
+    const st = STATUS_LABELS[newStatus] || STATUS_LABELS.new;
+
+    await answerCallbackQuery(cq.id, `✅ Holat o'zgardi: ${st.label}`, false);
+
+    // Edit message in current chat
+    const updatedCardText = getOrderCardText(order);
+    const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
+    const inlineRows = getOrderInlineKeyboard(order, isAdmin);
+
+    if (chatId && messageId) {
+      await editMessageText(chatId, messageId, updatedCardText, {
+        reply_markup: inlineRows ? { inline_keyboard: inlineRows } : undefined,
+      });
+    }
+
+    // Notify Customer if customer chatId exists and is not the same as this chat
+    if (order.chatId && String(order.chatId) !== String(chatId)) {
+      if (newStatus === 'confirmed') {
+        await sendMessage(
+          order.chatId,
+          `✅ <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz <b>qabul qilindi va tasdiqlandi</b>!`,
+          getMainKeyboard(order.chatId)
+        );
+      } else if (newStatus === 'cooking') {
+        await sendMessage(
+          order.chatId,
+          `👨‍🍳 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli go'sht buyurtmangiz <b>tayyorlanmoqda</b> (yangi go'sht saralanib, sifatli qadoqlanmoqda).`,
+          getMainKeyboard(order.chatId)
+        );
+      } else if (newStatus === 'delivering') {
+        await sendMessage(
+          order.chatId,
+          `🚗 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli go'sht buyurtmangiz kuryerga topshirildi va uyingiz tomon <b>yo'lga chiqdi</b>! Tez orada yetib boradi.`,
+          getMainKeyboard(order.chatId)
+        );
+      } else if (newStatus === 'done') {
+        const rateText = [
+          `🎉 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>`,
+          '',
+          `Sizning <b>#${order.id}</b> raqamli go'sht buyurtmangiz muvaffaqiyatli <b>yetkazib berildi</b>!`,
+          '',
+          `🥩 Go'sht sifati va yetkazish xizmatimiz sizga ma'qul bo'ldimi?`,
+          `Iltimos, xizmatimizni baholang:`,
+        ].join('\n');
+
+        await sendMessage(order.chatId, rateText, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '⭐ 5 (A\'lo)', callback_data: `rate:5:${order.id}` },
+                { text: '⭐ 4 (Yaxshi)', callback_data: `rate:4:${order.id}` },
+              ],
+              [
+                { text: '⭐ 3 (O\'rtacha)', callback_data: `rate:3:${order.id}` },
+                { text: '⭐ 2', callback_data: `rate:2:${order.id}` },
+                { text: '⭐ 1', callback_data: `rate:1:${order.id}` },
+              ],
+            ],
+          },
+        });
+      } else if (newStatus === 'cancelled') {
+        await sendMessage(
+          order.chatId,
+          `❌ <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz bekor qilindi.\nSavollar bo'yicha: +998 90 616 87 12`,
+          getMainKeyboard(order.chatId)
+        );
+      }
+    }
+    return;
+  }
+
+  // 3. Rating by Customer: rate:<stars>:<orderId>
   if (data.startsWith('rate:')) {
     const [, starStr, orderId] = data.split(':');
     const stars = parseInt(starStr, 10) || 5;
@@ -496,7 +705,7 @@ async function handleCallbackQuery(cq) {
         `👤 <b>Mijoz:</b> ${orderName}`,
         `📦 <b>Buyurtma ID:</b> <code>${orderId}</code>`,
         `⭐️ <b>Baho:</b> ${'★'.repeat(stars)} (${stars}/5)`,
-        `💬 <i>Mijoz bot orqali muvaffaqiyatli baholadi.</i>`,
+        `💬 <i>Mijoz bot orqali xizmatni baholadi.</i>`,
       ].join('\n');
       await sendMessage(ADMIN_CHAT_ID, adminNotice);
     }

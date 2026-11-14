@@ -33,12 +33,37 @@ export default function AdminPage() {
   useEffect(() => {
     setProducts(getProducts());
     setSettings(getSettings());
-    setOrders(getOrders());
     setReviews(getReviews());
+
+    // Load orders from server database
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(serverOrders => {
+        if (Array.isArray(serverOrders) && serverOrders.length > 0) {
+          setOrders(serverOrders);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('halol_orders', JSON.stringify(serverOrders));
+          }
+        } else {
+          setOrders(getOrders());
+        }
+      })
+      .catch(() => setOrders(getOrders()));
   }, []);
 
   // Buyurtmalarni refresh qilish
-  const refreshOrders = () => setOrders(getOrders());
+  const refreshOrders = () => {
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(serverOrders => {
+        if (Array.isArray(serverOrders)) {
+          setOrders(serverOrders);
+        } else {
+          setOrders(getOrders());
+        }
+      })
+      .catch(() => setOrders(getOrders()));
+  };
   const refreshReviews = () => setReviews(getReviews());
 
   const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };

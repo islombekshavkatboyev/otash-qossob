@@ -32,6 +32,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Token, Chat ID yoki matn yetarli emas' }, { status: 400 });
     }
 
+    const orderId = body.order?.id;
+    const inline_keyboard: any[] = [];
+
+    if (orderId) {
+      inline_keyboard.push([
+        { text: '✅ Qabul qilish', callback_data: `st:confirmed:${orderId}` },
+        { text: '👨‍🍳 Tayyorlash', callback_data: `st:cooking:${orderId}` },
+      ]);
+      inline_keyboard.push([
+        { text: '🚗 Kuryer yo\'lda', callback_data: `st:delivering:${orderId}` },
+        { text: '✓ Yetkazildi', callback_data: `st:done:${orderId}` },
+      ]);
+    }
+
+    if (body.order?.location?.mapsLink) {
+      inline_keyboard.push([
+        { text: '📍 Google Xaritada ochish 🗺️', url: body.order.location.mapsLink },
+      ]);
+    }
+
     const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -40,10 +60,25 @@ export async function POST(req: Request) {
         text,
         parse_mode: 'HTML',
         disable_web_page_preview: false,
+        reply_markup: inline_keyboard.length > 0 ? { inline_keyboard } : undefined,
       }),
     });
 
     const data = await tgRes.json();
+
+    // If order has GPS coordinates, send native interactive Telegram map pin
+    if (body.order?.location?.lat && body.order?.location?.lng) {
+      await fetch(`https://api.telegram.org/bot${token}/sendLocation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          latitude: body.order.location.lat,
+          longitude: body.order.location.lng,
+        }),
+      }).catch(err => console.error('Error sending location:', err));
+    }
+
     return NextResponse.json(data);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

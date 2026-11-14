@@ -68,6 +68,36 @@ export async function POST(req: Request) {
               parse_mode: 'HTML',
             }),
           }).catch(() => {});
+        } else if (status === 'confirmed') {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: targetChatId,
+              text: `✅ <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz <b>qabul qilindi va tasdiqlandi</b>!`,
+              parse_mode: 'HTML',
+            }),
+          }).catch(() => {});
+        } else if (status === 'cooking') {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: targetChatId,
+              text: `👨‍🍳 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz <b>tayyorlanmoqda</b> (yangi go'sht saralanib, qadoqlanmoqda).`,
+              parse_mode: 'HTML',
+            }),
+          }).catch(() => {});
+        } else if (status === 'cancelled') {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: targetChatId,
+              text: `❌ <b>Hurmatli ${order.customerName || 'mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz bekor qilindi.\nSavollar bo'yicha: +998 90 616 87 12`,
+              parse_mode: 'HTML',
+            }),
+          }).catch(() => {});
         }
       }
 
