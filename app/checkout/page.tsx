@@ -100,6 +100,13 @@ export default function CheckoutPage() {
     // LocalStorage ga saqlash
     saveOrder(order);
 
+    // Server bazasiga saqlash
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch(e => console.error('Error saving order to /api/orders:', e));
+
     // Telegram ga yuborish (agar token va chat_id bo'lsa)
     const botToken = settings.telegramBotToken || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
     const chatId = settings.telegramChatId || '6985755311';

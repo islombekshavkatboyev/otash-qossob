@@ -82,7 +82,15 @@ export function getOrders(): Order[] {
 export function saveOrder(order: Order): void {
   if (typeof window === 'undefined') return;
   const orders = getOrders();
-  orders.unshift(order); // yangi buyurtma boshida
+  const exists = orders.some(o => o.id === order.id);
+  if (!exists) {
+    orders.unshift(order); // yangi buyurtma boshida
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  }
+}
+
+export function saveAllOrders(orders: Order[]): void {
+  if (typeof window === 'undefined') return;
   localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
 }
 

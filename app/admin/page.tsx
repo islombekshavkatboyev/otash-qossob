@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import {
   Product, SiteSettings, Order, Review,
@@ -7,7 +9,7 @@ import {
 } from '../data/products';
 import {
   getProducts, saveProducts, getSettings, saveSettings,
-  getOrders, updateOrderStatus, deleteOrder,
+  getOrders, saveAllOrders, updateOrderStatus, deleteOrder,
   getReviews, deleteReview,
   formatWeight, calcItemPrice, formatDate,
 } from '../lib/storage';
@@ -21,6 +23,7 @@ export default function AdminPage() {
   const [products, setProducts]      = useState<Product[]>(defaultProducts);
   const [settings, setSettings]      = useState<SiteSettings>(defaultSettings);
   const [orders, setOrders]          = useState<Order[]>([]);
+  const [orderFilter, setOrderFilter] = useState<'all' | 'new' | 'delivering' | 'done'>('all');
   const [reviews, setReviews]        = useState<Review[]>([]);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'product' | 'service'>('all');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -34,18 +37,24 @@ export default function AdminPage() {
     setProducts(getProducts());
     setSettings(getSettings());
     setReviews(getReviews());
+    const local = getOrders();
+    if (local.length > 0) setOrders(local);
 
     // Load orders from server database
     fetch('/api/orders')
       .then(r => r.json())
       .then(serverOrders => {
         if (Array.isArray(serverOrders) && serverOrders.length > 0) {
-          setOrders(serverOrders);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('halol_orders', JSON.stringify(serverOrders));
-          }
-        } else {
-          setOrders(getOrders());
+          const merged = [...serverOrders];
+          local.forEach(lo => {
+            if (!merged.some(so => so.id === lo.id)) {
+              merged.push(lo);
+            }
+          });
+          setOrders(merged);
+          saveAllOrders(merged);
+        } else if (local.length > 0) {
+          setOrders(local);
         }
       })
       .catch(() => setOrders(getOrders()));
@@ -56,10 +65,18 @@ export default function AdminPage() {
     fetch('/api/orders')
       .then(r => r.json())
       .then(serverOrders => {
-        if (Array.isArray(serverOrders)) {
-          setOrders(serverOrders);
+        const local = getOrders();
+        if (Array.isArray(serverOrders) && serverOrders.length > 0) {
+          const merged = [...serverOrders];
+          local.forEach(lo => {
+            if (!merged.some(so => so.id === lo.id)) {
+              merged.push(lo);
+            }
+          });
+          setOrders(merged);
+          saveAllOrders(merged);
         } else {
-          setOrders(getOrders());
+          setOrders(local);
         }
       })
       .catch(() => setOrders(getOrders()));
@@ -141,6 +158,11 @@ export default function AdminPage() {
   };
 
   const newOrdersCount = orders.filter(o => o.status === 'new').length;
+  const deliveringOrdersCount = orders.filter(o => o.status === 'delivering').length;
+  const doneOrdersCount = orders.filter(o => o.status === 'done').length;
+  const displayedOrders = orderFilter === 'all'
+    ? orders
+    : orders.filter(o => o.status === orderFilter);
 
   // ─── Reviews ────────────────────────────────────────────
   const handleDeleteReview = (id: string) => {
@@ -369,15 +391,57 @@ export default function AdminPage() {
         {/* ═══ ORDERS TAB ═══ */}
         {activeTab === 'orders' && (
           <div className={styles.tabContent}>
-            {orders.length === 0 ? (
+            {/* Filter buttons & refresh */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+              <div className={styles.reviewFilterTabs} style={{ marginBottom: 0 }}>
+                <button
+                  className={`${styles.reviewFilterBtn} ${orderFilter === 'all' ? styles.reviewFilterBtnActive : ''}`}
+                  onClick={() => setOrderFilter('all')}
+                >
+                  Barchasi ({orders.length})
+                </button>
+                <button
+                  className={`${styles.reviewFilterBtn} ${orderFilter === 'new' ? styles.reviewFilterBtnActive : ''}`}
+                  onClick={() => setOrderFilter('new')}
+                >
+                  🆕 Yangi ({newOrdersCount})
+                </button>
+                <button
+                  className={`${styles.reviewFilterBtn} ${orderFilter === 'delivering' ? styles.reviewFilterBtnActive : ''}`}
+                  onClick={() => setOrderFilter('delivering')}
+                >
+                  🚗 Yetkazilmoqda ({deliveringOrdersCount})
+                </button>
+                <button
+                  className={`${styles.reviewFilterBtn} ${orderFilter === 'done' ? styles.reviewFilterBtnActive : ''}`}
+                  onClick={() => setOrderFilter('done')}
+                >
+                  ✓ Bajarildi ({doneOrdersCount})
+                </button>
+              </div>
+
+              <button
+                onClick={refreshOrders}
+                className={styles.reviewFilterBtn}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+              >
+                🔄 Yangilash
+              </button>
+            </div>
+
+            {displayedOrders.length === 0 ? (
               <div className={styles.emptyOrders}>
                 <span>📦</span>
-                <p>Hozircha buyurtmalar yo'q</p>
+                <p>
+                  {orderFilter === 'all'
+                    ? "Hozircha buyurtmalar yo'q"
+                    : "Ushbu bo'limda buyurtma topilmadi"}
+                </p>
               </div>
             ) : (
               <div className={styles.ordersList}>
-                {orders.map(order => {
-                  const st = ORDER_STATUSES[order.status];
+                {displayedOrders.map(order => {
+                  const st = ORDER_STATUSES[order.status] || { label: order.status, color: '#64748b', emoji: '📦' };
                   return (
                     <div key={order.id} className={`${styles.orderCard} ${order.status === 'new' ? styles.orderNew : ''}`}>
                       {/* Order header */}
