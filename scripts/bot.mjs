@@ -9,7 +9,12 @@ const ORDERS_FILE = path.join(ROOT, 'data', 'orders.json');
 const REVIEWS_FILE = path.join(ROOT, 'data', 'reviews.json');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
-const ADMIN_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6985755311';
+const DEFAULT_ADMIN_IDS = ['6985755311', '8774620555'];
+const envAdmins = process.env.TELEGRAM_CHAT_ID
+  ? process.env.TELEGRAM_CHAT_ID.split(',').map(s => s.trim()).filter(Boolean)
+  : [];
+const ADMIN_IDS = Array.from(new Set([...DEFAULT_ADMIN_IDS, ...envAdmins]));
+const isAdmin = (chatId) => ADMIN_IDS.map(String).includes(String(chatId));
 const BASE_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 // Ensure files exist
@@ -114,12 +119,12 @@ async function answerCallbackQuery(callbackQueryId, text = '', showAlert = false
 
 // ─── Keyboards ───────────────────────────────────────────────
 function getMainKeyboard(chatId) {
-  const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
+  const adminUser = isAdmin(chatId);
   const rows = [
     [{ text: '📦 Buyurtmam holati' }, { text: '🥩 Mahsulotlar narxi' }],
     [{ text: '🛒 Do\'konga kirish (Sayt)' }, { text: '📞 Aloqa va Manzil' }],
   ];
-  if (isAdmin) {
+  if (adminUser) {
     rows.unshift([{ text: '📋 Barcha buyurtmalar (Admin)' }]);
   }
   return {
@@ -301,17 +306,19 @@ async function handleMessage(msg) {
         getMainKeyboard(chatId)
       );
 
-      // Forward to Admin
-      if (ADMIN_CHAT_ID && String(chatId) !== String(ADMIN_CHAT_ID)) {
-        await sendMessage(
-          ADMIN_CHAT_ID,
-          `📍 <b>MIJOZDAN YANGI LOKATSIYA KELDI!</b>\n\n👤 Mijoz: <b>${userOrder.customerName || userName}</b>\n📞 Tel: <b>${userOrder.phone}</b>\n📦 Buyurtma: <code>#${userOrder.id}</code>\n🔗 <a href="${mapsLink}">Google Xaritada ochish 🗺️</a>`
-        );
-        await api('sendLocation', {
-          chat_id: ADMIN_CHAT_ID,
-          latitude,
-          longitude,
-        });
+      // Forward to all Admins
+      for (const adminId of ADMIN_IDS) {
+        if (String(chatId) !== String(adminId)) {
+          await sendMessage(
+            adminId,
+            `📍 <b>MIJOZDAN YANGI LOKATSIYA KELDI!</b>\n\n👤 Mijoz: <b>${userOrder.customerName || userName}</b>\n📞 Tel: <b>${userOrder.phone}</b>\n📦 Buyurtma: <code>#${userOrder.id}</code>\n🔗 <a href="${mapsLink}">Google Xaritada ochish 🗺️</a>`
+          );
+          await api('sendLocation', {
+            chat_id: adminId,
+            latitude,
+            longitude,
+          });
+        }
       }
     } else {
       await sendMessage(
@@ -338,7 +345,7 @@ async function handleMessage(msg) {
       return;
     }
 
-    const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
+    const adminUser = isAdmin(chatId);
     const welcome = [
       `🥩 <b>Assalomu alaykum, ${userName}!</b>`,
       '',
@@ -348,7 +355,7 @@ async function handleMessage(msg) {
       `• 🥩 Yangi va halol go'sht turlari narxini ko'rishingiz`,
       `• 📦 Buyurtmangiz tarkibi, <b>GPS lokatsiyasi</b> va <b>holatini (status)</b> kuzatishingiz`,
       `• ⭐ Yetkazib berilgach, sifat va xizmatimizni <b>baholashingiz</b> mumkin!`,
-      isAdmin ? '\n👨‍💼 <i>Siz tizimda Administrator sifatida tanildingiz. Barcha buyurtmalarni boshqarishingiz mumkin.</i>' : '',
+      adminUser ? '\n👨‍💼 <i>Siz tizimda Administrator sifatida tanildingiz. Barcha buyurtmalarni boshqarishingiz mumkin.</i>' : '',
       '',
       `Quyidagi tugmalardan birini tanlang:`,
     ].filter(Boolean).join('\n');
@@ -530,7 +537,7 @@ async function showOrderByIdOrPhone(chatId, query, userName) {
   }
 
   const order = matched[0];
-  if (order.chatId !== chatId && String(chatId) !== String(ADMIN_CHAT_ID)) {
+  if (order.chatId !== chatId && !isAdmin(chatId)) {
     order.chatId = chatId;
     saveOrders(orders);
     await sendMessage(chatId, `✅ <b>#${order.id}</b> raqamli buyurtmangiz ushbu Telegramingizga biriktirildi. Holat o'zgarganda sizga xabar yuboriladi!`);
@@ -552,7 +559,7 @@ async function showOrderByPhone(chatId, cleanPhone, userName) {
   }
 
   const order = matched[0];
-  if (order.chatId !== chatId && String(chatId) !== String(ADMIN_CHAT_ID)) {
+  if (order.chatId !== chatId && !isAdmin(chatId)) {
     order.chatId = chatId;
     saveOrders(orders);
     await sendMessage(chatId, `✅ <b>#${order.id}</b> raqamli buyurtmangiz ushbu Telegramingizga biriktirildi. Holat o'zgarganda sizga xabar yuboriladi!`);
@@ -561,9 +568,9 @@ async function showOrderByPhone(chatId, cleanPhone, userName) {
 }
 
 async function sendOrderCard(chatId, order) {
-  const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
+  const adminUser = isAdmin(chatId);
   const cardText = getOrderCardText(order);
-  const inlineRows = getOrderInlineKeyboard(order, isAdmin);
+  const inlineRows = getOrderInlineKeyboard(order, adminUser);
 
   const extra = {};
   if (inlineRows && inlineRows.length > 0) {
@@ -654,8 +661,8 @@ async function handleCallbackQuery(cq) {
 
     // Edit message in current chat
     const updatedCardText = getOrderCardText(order);
-    const isAdmin = String(chatId) === String(ADMIN_CHAT_ID);
-    const inlineRows = getOrderInlineKeyboard(order, isAdmin);
+    const adminUser = isAdmin(chatId);
+    const inlineRows = getOrderInlineKeyboard(order, adminUser);
 
     if (chatId && messageId) {
       await editMessageText(chatId, messageId, updatedCardText, {
@@ -664,7 +671,7 @@ async function handleCallbackQuery(cq) {
     }
 
     // Notify Customer if customer chatId exists and is not admin
-    if (order.chatId && String(order.chatId) !== String(ADMIN_CHAT_ID) && String(order.chatId) !== String(chatId)) {
+    if (order.chatId && !isAdmin(order.chatId) && String(order.chatId) !== String(chatId)) {
       if (newStatus === 'confirmed') {
         await sendMessage(
           order.chatId,
@@ -763,8 +770,8 @@ async function handleCallbackQuery(cq) {
       await editMessageText(chatId, messageId, thanksText);
     }
 
-    // Notify Admin
-    if (ADMIN_CHAT_ID) {
+    // Notify all Admins
+    for (const adminId of ADMIN_IDS) {
       const adminNotice = [
         `⭐ <b>YANGI BAHO QABUL QILINDI!</b>`,
         '',
@@ -773,7 +780,7 @@ async function handleCallbackQuery(cq) {
         `⭐️ <b>Baho:</b> ${'★'.repeat(stars)} (${stars}/5)`,
         `💬 <i>Mijoz bot orqali xizmatni baholadi.</i>`,
       ].join('\n');
-      await sendMessage(ADMIN_CHAT_ID, adminNotice);
+      await sendMessage(adminId, adminNotice);
     }
   }
 }

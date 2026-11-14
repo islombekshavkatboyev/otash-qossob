@@ -170,7 +170,7 @@ export const defaultSettings: SiteSettings = {
   phone: '+998906168712',
   telegram: 'https://t.me/Otabek07092000',
   telegramBotToken: '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U',
-  telegramChatId: '6985755311',
+  telegramChatId: '6985755311,8774620555',
   telegramBotUsername: 'halolgoshtyetkazishbot',
   address: "Samarqand sh., Urgut tumani",
   workingHours: '07:00 - 22:00',

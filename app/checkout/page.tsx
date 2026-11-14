@@ -131,7 +131,7 @@ export default function CheckoutPage() {
 
     // Telegram ga yuborish (agar token va chat_id bo'lsa)
     const botToken = settings.telegramBotToken || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
-    const chatId = settings.telegramChatId || '6985755311';
+    const chatId = settings.telegramChatId || '6985755311,8774620555';
 
     if (botToken && chatId) {
       try {

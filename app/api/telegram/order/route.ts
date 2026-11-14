@@ -7,8 +7,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const token = body.token || process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
-    const chatId = body.chatId || process.env.TELEGRAM_CHAT_ID || '6985755311';
     const text = body.text;
+
+    const defaultAdminIds = ['6985755311', '8774620555'];
+    const rawChatId = body.chatId || process.env.TELEGRAM_CHAT_ID || '6985755311,8774620555';
+    const adminChatIds = Array.from(new Set([
+      ...defaultAdminIds,
+      ...String(rawChatId).split(',').map(s => s.trim()),
+    ])).filter(Boolean);
 
     // Save order if provided
     if (body.order) {
@@ -24,7 +30,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!token || !chatId || !text) {
+    if (!token || adminChatIds.length === 0 || !text) {
       return NextResponse.json({ error: 'Token, Chat ID yoki matn yetarli emas' }, { status: 400 });
     }
 
@@ -48,36 +54,44 @@ export async function POST(req: Request) {
       ]);
     }
 
-    const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML',
-        disable_web_page_preview: false,
-        reply_markup: inline_keyboard.length > 0 ? { inline_keyboard } : undefined,
-      }),
-    });
+    let lastResult = { ok: true };
 
-    const data = await tgRes.json();
+    // Barcha adminlarga (6985755311 va 8774620555) yangi buyurtma yuboriladi
+    for (const targetAdminId of adminChatIds) {
+      try {
+        const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: targetAdminId,
+            text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: false,
+            reply_markup: inline_keyboard.length > 0 ? { inline_keyboard } : undefined,
+          }),
+        });
+        lastResult = await tgRes.json();
 
-    // If order has GPS coordinates, send native interactive Telegram map pin
-    if (body.order?.location?.lat && body.order?.location?.lng) {
-      await fetch(`https://api.telegram.org/bot${token}/sendLocation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          latitude: body.order.location.lat,
-          longitude: body.order.location.lng,
-        }),
-      }).catch(err => console.error('Error sending location:', err));
+        // If order has GPS coordinates, send native interactive Telegram map pin
+        if (body.order?.location?.lat && body.order?.location?.lng) {
+          await fetch(`https://api.telegram.org/bot${token}/sendLocation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: targetAdminId,
+              latitude: body.order.location.lat,
+              longitude: body.order.location.lng,
+            }),
+          }).catch(err => console.error('Error sending location:', err));
+        }
+      } catch (err) {
+        console.error(`Error notifying admin ${targetAdminId}:`, err);
+      }
     }
 
     // Mijozning o'z Telegram hisobi bo'lsa (va u admin bo'lmasa), mijozga tasdiq xabari yuboriladi
     const customerChatId = body.order?.chatId;
-    if (customerChatId && String(customerChatId) !== String(chatId)) {
+    if (customerChatId && !adminChatIds.map(String).includes(String(customerChatId))) {
       await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,7 +103,7 @@ export async function POST(req: Request) {
       }).catch(() => {});
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(lastResult);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

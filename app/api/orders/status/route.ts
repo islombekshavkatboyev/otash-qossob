@@ -20,10 +20,16 @@ export async function POST(req: Request) {
       const order = orders[idx];
       const botToken = process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
       const targetChatId = order.chatId;
-      const adminChatId = process.env.TELEGRAM_CHAT_ID || '6985755311';
+
+      const defaultAdminIds = ['6985755311', '8774620555'];
+      const rawAdminChatId = process.env.TELEGRAM_CHAT_ID || '6985755311,8774620555';
+      const adminChatIds = Array.from(new Set([
+        ...defaultAdminIds,
+        ...String(rawAdminChatId).split(',').map(s => s.trim()),
+      ])).filter(Boolean);
 
       // Faqat mijozning o'ziga yuboriladi (adminga mijoz xabarlarini tashlamaydi!)
-      if (targetChatId && String(targetChatId) !== String(adminChatId) && botToken) {
+      if (targetChatId && !adminChatIds.map(String).includes(String(targetChatId)) && botToken) {
         if (status === 'done') {
           const rateText = [
             `🎉 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>`,

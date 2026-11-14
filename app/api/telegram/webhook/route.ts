@@ -4,7 +4,12 @@ import { readOrders, writeOrders, readReviews, writeReviews } from '../../../lib
 export const dynamic = 'force-dynamic';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
-const ADMIN_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6985755311';
+const DEFAULT_ADMIN_IDS = ['6985755311', '8774620555'];
+const envAdmins = process.env.TELEGRAM_CHAT_ID
+  ? process.env.TELEGRAM_CHAT_ID.split(',').map(s => s.trim()).filter(Boolean)
+  : [];
+const ADMIN_IDS = Array.from(new Set([...DEFAULT_ADMIN_IDS, ...envAdmins]));
+const isAdmin = (chatId: any) => ADMIN_IDS.map(String).includes(String(chatId));
 
 const STATUS_LABELS: Record<string, { label: string; emoji: string; desc: string }> = {
   new: { label: 'Yangi qabul qilindi', emoji: '🆕', desc: 'Operator tomonidan tekshirilmoqda' },
@@ -118,7 +123,7 @@ export async function POST(req: Request) {
         }
 
         // Notify customer if customer Telegram is attached and not admin
-        if (order.chatId && String(order.chatId) !== String(ADMIN_CHAT_ID)) {
+        if (order.chatId && !isAdmin(order.chatId)) {
           let customerMsg = '';
           if (newStatus === 'confirmed') {
             customerMsg = `✅ <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz <b>tasdiqlandi</b>!`;
