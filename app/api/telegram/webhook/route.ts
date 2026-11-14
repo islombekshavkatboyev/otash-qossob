@@ -20,6 +20,18 @@ const STATUS_LABELS: Record<string, { label: string; emoji: string; desc: string
   cancelled: { label: 'Bekor qilingan', emoji: '❌', desc: 'Buyurtma bekor qilingan' },
 };
 
+function matchPhone(phoneA: any, phoneB: any) {
+  if (!phoneA || !phoneB) return false;
+  const digitsA = String(phoneA).replace(/\D/g, '');
+  const digitsB = String(phoneB).replace(/\D/g, '');
+  if (!digitsA || !digitsB) return false;
+  if (digitsA === digitsB) return true;
+  const last9A = digitsA.slice(-9);
+  const last9B = digitsB.slice(-9);
+  if (last9A.length === 9 && last9B.length === 9 && last9A === last9B) return true;
+  return digitsA.includes(digitsB) || digitsB.includes(digitsA);
+}
+
 function parseOrderFromMessage(text: string, orderId: string) {
   const nameMatch = text.match(/Mijoz:\s*([^\n]+)/i);
   const phoneMatch = text.match(/Telefon:\s*([^\n]+)/i);
@@ -180,6 +192,75 @@ export async function POST(req: Request) {
             text: `Rahmat! ${numStars} yulduz bilan baholandi ⭐`,
           }),
         }).catch(() => {});
+      }
+    }
+
+    // ─── Incoming Message handler (Contact, Status check, etc.) ───
+    if (update.message) {
+      const msg = update.message;
+      const chatId = msg.chat?.id;
+      const text = (msg.text || '').trim();
+      const lower = text.toLowerCase();
+
+      if (chatId) {
+        // 1. Contact shared
+        if (msg.contact?.phone_number) {
+          const cleanPhone = msg.contact.phone_number.replace(/\D/g, '');
+          const orders = readOrders();
+          const matched = orders.filter((o: any) => matchPhone(o.phone, cleanPhone));
+          if (matched.length > 0) {
+            const ord = matched[0];
+            if (String(ord.chatId) !== String(chatId) && !isAdmin(chatId)) {
+              ord.chatId = chatId;
+              writeOrders(orders);
+            }
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: `📦 <b>Sizning buyurtmangiz holati:</b>\n\n🆔 Buyurtma: <code>#${ord.id}</code>\n👤 Mijoz: <b>${ord.customerName}</b>\n📊 Holati: <b>${STATUS_LABELS[ord.status]?.emoji || '📦'} ${STATUS_LABELS[ord.status]?.label || ord.status}</b>\n💰 Jami: <b>${Math.round(ord.totalPrice || 0).toLocaleString()} so'm</b>`,
+                parse_mode: 'HTML',
+              }),
+            }).catch(() => {});
+          } else {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: `❌ Ushbu +${cleanPhone} raqamiga tegishli buyurtma topilmadi.`,
+                parse_mode: 'HTML',
+              }),
+            }).catch(() => {});
+          }
+        } else if (lower.includes('buyurtma') || lower === '/buyurtma') {
+          // 2. Buyurtma holati tugmasi
+          const orders = readOrders();
+          const userOrders = orders.filter((o: any) => String(o.chatId) === String(chatId));
+          if (userOrders.length > 0) {
+            const activeOrder = userOrders.find((o: any) => o.status !== 'done' && o.status !== 'cancelled') || userOrders[0];
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: `📦 <b>Sizning buyurtmangiz holati:</b>\n\n🆔 Buyurtma: <code>#${activeOrder.id}</code>\n👤 Mijoz: <b>${activeOrder.customerName}</b>\n📊 Holati: <b>${STATUS_LABELS[activeOrder.status]?.emoji || '📦'} ${STATUS_LABELS[activeOrder.status]?.label || activeOrder.status}</b>\n💰 Jami: <b>${Math.round(activeOrder.totalPrice || 0).toLocaleString()} so'm</b>`,
+                parse_mode: 'HTML',
+              }),
+            }).catch(() => {});
+          } else {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: `🔍 <b>Buyurtma holatini tekshirish:</b>\n\nIltimos, telefon raqamingizni yoki buyurtma ID raqamini (masalan: <code>HG-261114-120</code>) yozib yuboring:`,
+                parse_mode: 'HTML',
+              }),
+            }).catch(() => {});
+          }
+        }
       }
     }
 

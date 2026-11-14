@@ -149,6 +149,48 @@ const REQUEST_CONTACT_KEYBOARD = {
 // User interaction state (e.g. waiting for order id)
 const userStates = new Map();
 
+function matchPhone(phoneA, phoneB) {
+  if (!phoneA || !phoneB) return false;
+  const digitsA = String(phoneA).replace(/\D/g, '');
+  const digitsB = String(phoneB).replace(/\D/g, '');
+  if (!digitsA || !digitsB) return false;
+  if (digitsA === digitsB) return true;
+  const last9A = digitsA.slice(-9);
+  const last9B = digitsB.slice(-9);
+  if (last9A.length === 9 && last9B.length === 9 && last9A === last9B) return true;
+  return digitsA.includes(digitsB) || digitsB.includes(digitsA);
+}
+
+async function syncRemoteOrders() {
+  try {
+    const res = await fetch('https://otash-qossob.vercel.app/api/orders', { cache: 'no-store' });
+    const remoteOrders = await res.json();
+    if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+      let local = getOrders();
+      let changed = false;
+      for (const ro of remoteOrders) {
+        const idx = local.findIndex(lo => lo.id === ro.id);
+        if (idx !== -1) {
+          if (local[idx].status !== ro.status || (ro.chatId && !local[idx].chatId)) {
+            local[idx] = { ...local[idx], ...ro };
+            changed = true;
+          }
+        } else {
+          local.unshift(ro);
+          changed = true;
+        }
+      }
+      if (changed) {
+        saveOrders(local);
+      }
+      return local;
+    }
+  } catch (err) {
+    console.error('Error syncing remote orders:', err.message);
+  }
+  return getOrders();
+}
+
 function parseOrderFromMessage(text, orderId) {
   const nameMatch = text.match(/Mijoz:\s*([^\n]+)/i);
   const phoneMatch = text.match(/Telefon:\s*([^\n]+)/i);
@@ -383,6 +425,17 @@ async function handleMessage(msg) {
 
   // 1. Buyurtma holati
   if (lower.includes('buyurtma') || lower === '/buyurtma') {
+    const orders = await syncRemoteOrders();
+
+    // Agar mijozning ushbu Telegramiga biriktirilgan buyurtmasi bo'lsa, darhol ko'rsatish
+    const userOrders = orders.filter(o => String(o.chatId) === String(chatId));
+    if (userOrders.length > 0) {
+      const activeOrder = userOrders.find(o => o.status !== 'done' && o.status !== 'cancelled') || userOrders[0];
+      await sendMessage(chatId, `📦 <b>Sizning buyurtmangiz holati:</b>`);
+      await sendOrderCard(chatId, activeOrder);
+      return;
+    }
+
     userStates.set(chatId, 'WAITING_ORDER_SEARCH');
     const prompt = [
       `🔍 <b>Buyurtma holatini tekshirish:</b>`,
@@ -500,9 +553,15 @@ async function handleMessage(msg) {
     return;
   }
 
-  // User was waiting to search an order
-  if (userStates.get(chatId) === 'WAITING_ORDER_SEARCH' || text.startsWith('HG-')) {
-    const query = text.trim();
+  // User was waiting to search an order, or user sent an order ID or phone
+  const cleanDigits = (text || '').replace(/\D/g, '');
+  const isOrderOrPhone =
+    userStates.get(chatId) === 'WAITING_ORDER_SEARCH' ||
+    (text && text.toUpperCase().includes('HG-')) ||
+    cleanDigits.length >= 7;
+
+  if (isOrderOrPhone) {
+    const query = text.replace('#', '').trim();
     await showOrderByIdOrPhone(chatId, query, userName);
     userStates.delete(chatId);
     return;
@@ -518,36 +577,42 @@ async function handleMessage(msg) {
 
 // ─── Order Search Helpers ────────────────────────────────────
 async function showOrderByIdOrPhone(chatId, query, userName) {
-  const orders = getOrders();
-  const cleanQ = query.replace(/\D/g, '');
+  const orders = await syncRemoteOrders();
+  const cleanQ = query.trim();
 
   const matched = orders.filter(o => {
-    if (o.id && o.id.toLowerCase() === query.toLowerCase()) return true;
-    if (cleanQ && o.phone && o.phone.replace(/\D/g, '').includes(cleanQ)) return true;
+    if (o.id && o.id.toLowerCase() === cleanQ.toLowerCase()) return true;
+    if (o.id && o.id.replace('#', '').toLowerCase() === cleanQ.replace('#', '').toLowerCase()) return true;
+    if (matchPhone(o.phone, cleanQ)) return true;
     return false;
   });
 
   if (matched.length === 0) {
     await sendMessage(
       chatId,
-      `❌ <b>Buyurtma topilmadi.</b>\n\nKiritilgan ma'lumot: <code>${query}</code>\nIltimos, buyurtma ID raqami yoki buyurtma bergan telefoningizni to'g'ri kiriting.`,
+      `❌ <b>Buyurtma topilmadi.</b>\n\nKiritilgan ma'lumot: <code>${query}</code>\nIltimos, buyurtma ID raqami (masalan: <code>HG-261114-120</code>) yoki telefoningizni to'g'ri kiriting.`,
       getMainKeyboard(chatId)
     );
     return;
   }
 
   const order = matched[0];
-  if (order.chatId !== chatId && !isAdmin(chatId)) {
+  if (String(order.chatId) !== String(chatId) && !isAdmin(chatId)) {
     order.chatId = chatId;
     saveOrders(orders);
+    fetch('https://otash-qossob.vercel.app/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch(() => {});
     await sendMessage(chatId, `✅ <b>#${order.id}</b> raqamli buyurtmangiz ushbu Telegramingizga biriktirildi. Holat o'zgarganda sizga xabar yuboriladi!`);
   }
   await sendOrderCard(chatId, order);
 }
 
 async function showOrderByPhone(chatId, cleanPhone, userName) {
-  const orders = getOrders();
-  const matched = orders.filter(o => o.phone && o.phone.replace(/\D/g, '').includes(cleanPhone));
+  const orders = await syncRemoteOrders();
+  const matched = orders.filter(o => matchPhone(o.phone, cleanPhone));
 
   if (matched.length === 0) {
     await sendMessage(
@@ -559,9 +624,14 @@ async function showOrderByPhone(chatId, cleanPhone, userName) {
   }
 
   const order = matched[0];
-  if (order.chatId !== chatId && !isAdmin(chatId)) {
+  if (String(order.chatId) !== String(chatId) && !isAdmin(chatId)) {
     order.chatId = chatId;
     saveOrders(orders);
+    fetch('https://otash-qossob.vercel.app/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch(() => {});
     await sendMessage(chatId, `✅ <b>#${order.id}</b> raqamli buyurtmangiz ushbu Telegramingizga biriktirildi. Holat o'zgarganda sizga xabar yuboriladi!`);
   }
   await sendOrderCard(chatId, order);
@@ -601,8 +671,17 @@ async function handleCallbackQuery(cq) {
 
   // 1. Check status prompt
   if (data === 'check_status') {
-    userStates.set(chatId, 'WAITING_ORDER_SEARCH');
     await answerCallbackQuery(cq.id);
+    const orders = await syncRemoteOrders();
+    const userOrders = orders.filter(o => String(o.chatId) === String(chatId));
+    if (userOrders.length > 0) {
+      const activeOrder = userOrders.find(o => o.status !== 'done' && o.status !== 'cancelled') || userOrders[0];
+      await sendMessage(chatId, `📦 <b>Sizning buyurtmangiz holati:</b>`);
+      await sendOrderCard(chatId, activeOrder);
+      return;
+    }
+
+    userStates.set(chatId, 'WAITING_ORDER_SEARCH');
     const prompt = [
       `🔍 <b>Buyurtma holatini tekshirish:</b>`,
       '',
