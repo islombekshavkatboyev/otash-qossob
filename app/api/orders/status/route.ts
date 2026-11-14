@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       ])).filter(Boolean);
 
       // Agar bot allaqachon xabar yuborgan bo'lsa (skipTelegram) yoki holat o'zgarmagan bo'lsa, qayta yuborilmaydi!
-      if (!skipTelegram && prevStatus !== status && targetChatId && !adminChatIds.map(String).includes(String(targetChatId)) && botToken) {
+      if (!skipTelegram && prevStatus !== status && targetChatId && botToken) {
         if (status === 'done') {
           const rateText = [
             `🎉 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>`,

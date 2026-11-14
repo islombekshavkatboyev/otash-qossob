@@ -221,15 +221,16 @@ async function sendOrderCard(chatId: any, order: any) {
   const cardText = getOrderCardText(order);
   const inlineRows = getOrderInlineKeyboard(order, adminUser);
 
-  const extra: any = {};
   if (inlineRows && inlineRows.length > 0) {
-    extra.reply_markup = { inline_keyboard: inlineRows };
+    await api('sendMessage', {
+      chat_id: chatId,
+      text: cardText,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: inlineRows },
+    });
+  } else {
+    await sendMessage(chatId, cardText, getMainKeyboard(chatId));
   }
-
-  await sendMessage(chatId, cardText, {
-    ...extra,
-    ...getMainKeyboard(chatId),
-  });
 
   if (order.location?.lat && order.location?.lng) {
     await api('sendLocation', {
@@ -325,21 +326,56 @@ export async function POST(req: Request) {
           });
         }
 
-        // Mijozga bitta toza bildirishnoma
-        if (order.chatId && !isAdmin(order.chatId) && String(order.chatId) !== String(chatId)) {
-          let customerMsg = '';
-          if (newStatus === 'confirmed') {
-            customerMsg = `✅ <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz <b>tasdiqlandi</b>!`;
-          } else if (newStatus === 'cooking') {
-            customerMsg = `👨‍🍳 <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli go'sht buyurtmangiz <b>tayyorlanmoqda</b>.`;
-          } else if (newStatus === 'delivering') {
-            customerMsg = `🚗 <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli go'sht buyurtmangiz kuryerga topshirildi va uyingiz tomon <b>yo'lga chiqdi</b>! Tez orada yetib boradi.`;
-          } else if (newStatus === 'done') {
-            customerMsg = `🎉 <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz muvaffaqiyatli yetkazib berildi! Go'sht sifati va yetkazish xizmatimiz sizga ma'qul bo'ldimi?`;
-          }
+        // Mijozga bitta toza bildirishnoma va baholash tugmalari
+        if (order.chatId) {
+          if (newStatus === 'done') {
+            const rateText = [
+              `🎉 <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>`,
+              '',
+              `Sizning <b>#${order.id}</b> raqamli go'sht buyurtmangiz muvaffaqiyatli <b>yetkazib berildi</b>!`,
+              '',
+              `🥩 Go'sht sifati va yetkazish xizmatimiz sizga ma'qul bo'ldimi?`,
+              `Iltimos, o'z bahoingizni qoldiring:`,
+            ].join('\n');
 
-          if (customerMsg) {
-            await sendMessage(order.chatId, customerMsg, getMainKeyboard(order.chatId));
+            await api('sendMessage', {
+              chat_id: order.chatId,
+              text: rateText,
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '⭐ 5 (A\'lo)', callback_data: `rate:5:${order.id}` },
+                    { text: '⭐ 4 (Yaxshi)', callback_data: `rate:4:${order.id}` },
+                  ],
+                  [
+                    { text: '⭐ 3 (O\'rtacha)', callback_data: `rate:3:${order.id}` },
+                    { text: '⭐ 2', callback_data: `rate:2:${order.id}` },
+                    { text: '⭐ 1', callback_data: `rate:1:${order.id}` },
+                  ],
+                ],
+              },
+            });
+          } else {
+            let customerMsg = '';
+            if (newStatus === 'confirmed') {
+              customerMsg = `✅ <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz <b>tasdiqlandi</b>!`;
+            } else if (newStatus === 'cooking') {
+              customerMsg = `👨‍🍳 <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli go'sht buyurtmangiz <b>tayyorlanmoqda</b>.`;
+            } else if (newStatus === 'delivering') {
+              customerMsg = `🚗 <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli go'sht buyurtmangiz kuryerga topshirildi va uyingiz tomon <b>yo'lga chiqdi</b>! Tez orada yetib boradi.`;
+            } else if (newStatus === 'cancelled') {
+              customerMsg = `❌ <b>Hurmatli ${order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${order.id}</code> raqamli buyurtmangiz bekor qilindi.\nSavollar bo'yicha: +998 90 616 87 12`;
+            }
+
+            if (customerMsg) {
+              await api('sendMessage', {
+                chat_id: order.chatId,
+                text: customerMsg,
+                parse_mode: 'HTML',
+                ...getMainKeyboard(order.chatId),
+              });
+            }
           }
         }
         return NextResponse.json({ ok: true });
