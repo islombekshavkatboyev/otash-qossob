@@ -57,6 +57,7 @@ export default function Home() {
         deliveryMin={deliverySettings.minTime}
         deliveryMax={deliverySettings.maxTime}
         botUrl={`https://t.me/${settings.telegramBotUsername || 'halolgoshtyetkazishbot'}`}
+        onOrderClick={() => setFilter('all')}
       />
 
       {/* Products Section */}

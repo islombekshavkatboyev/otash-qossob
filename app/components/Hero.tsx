@@ -7,9 +7,10 @@ interface HeroProps {
   deliveryMin: number;
   deliveryMax: number;
   botUrl?: string;
+  onOrderClick?: () => void;
 }
 
-export default function Hero({ phone, deliveryMin, deliveryMax, botUrl }: HeroProps) {
+export default function Hero({ phone, deliveryMin, deliveryMax, botUrl, onOrderClick }: HeroProps) {
   const telegramBotUrl = botUrl || 'https://t.me/halolgoshtyetkazishbot';
 
   return (
@@ -44,18 +45,22 @@ export default function Hero({ phone, deliveryMin, deliveryMax, botUrl }: HeroPr
 
           <div className={styles.heroActions}>
             <a
+              href="#mahsulotlar"
+              className="btn-primary"
+              id="hero-order-btn"
+              onClick={onOrderClick}
+            >
+              <span>🛒</span>
+              <span>Buyurtma berish</span>
+            </a>
+            <a
               href={telegramBotUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary"
-              id="hero-order-btn"
+              className={styles.heroSecondaryBtn}
             >
-              <span>✈️</span>
-              <span>Buyurtma berish</span>
-            </a>
-            <a href="#mahsulotlar" className={styles.heroSecondaryBtn}>
-              <span>🥩</span>
-              <span>Mahsulotlar</span>
+              <span>🤖</span>
+              <span>Telegram bot</span>
             </a>
           </div>
 
