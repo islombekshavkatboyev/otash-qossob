@@ -26,14 +26,16 @@
     "note": "11",
     "totalPrice": 225000,
     "deliveryPrice": 15000,
-    "status": "new",
+    "status": "done",
     "createdAt": "2026-11-14T11:13:17.865Z",
     "location": {
       "lat": 41.2615,
       "lng": 69.2176,
       "mapsLink": "https://maps.google.com/?q=41.2615,69.2176"
     },
-    "chatId": "426389484"
+    "chatId": "426389484",
+    "rated": true,
+    "rating": 5
   },
   {
     "id": "HG-261114-214",
