@@ -1,0 +1,358 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+  animation: scaleUp 0.25s ease;
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Header */
+.header {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: var(--bg-card2);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.ratingSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stars {
+  display: flex;
+  color: #f59e0b;
+  font-size: 16px;
+}
+
+.starFilled {
+  color: #f59e0b;
+}
+
+.starEmpty {
+  color: #cbd5e1;
+}
+
+.avgNum {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.reviewCount {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.closeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card2);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: #fef2f2;
+  color: var(--primary);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+/* Body */
+.body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.body::-webkit-scrollbar { width: 5px; }
+.body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.formTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.starPicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pickerLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.starButtons {
+  display: flex;
+  gap: 2px;
+}
+
+.starBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: transform 0.15s, color 0.15s;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.starBtn:hover {
+  transform: scale(1.2);
+}
+
+.starActive {
+  color: #f59e0b;
+}
+
+.ratingText {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input, .textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input:focus, .textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.successMsg {
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
+  animation: fadeIn 0.3s ease;
+}
+
+.submitBtn {
+  align-self: flex-start;
+  padding: 12px 24px;
+  background: var(--grad-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+  transition: all 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Reviews List */
+.reviewsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reviewsTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.noReviews {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.reviewCard {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+}
+
+.reviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reviewerInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reviewerName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reviewDate {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.reviewStars {
+  display: flex;
+  font-size: 14px;
+}
+
+.reviewComment {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Dark mode overrides */
+:global([data-theme="dark"]) .modal {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+}
+
+:global([data-theme="dark"]) .header {
+  background: var(--bg-card2);
+}
+
+:global([data-theme="dark"]) .closeBtn {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+:global([data-theme="dark"]) .form {
+  background: var(--bg-card2);
+  border-color: var(--border);
+}
+
+:global([data-theme="dark"]) .input,
+:global([data-theme="dark"]) .textarea {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+:global([data-theme="dark"]) .reviewCard {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+:global([data-theme="dark"]) .avatar {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}

@@ -1,0 +1,51 @@
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+const ORDERS_FILE = path.join(process.cwd(), 'data', 'orders.json');
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const token = body.token || process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
+    const chatId = body.chatId || process.env.TELEGRAM_CHAT_ID || '6985755311';
+    const text = body.text;
+
+    // Save order to data/orders.json if provided
+    if (body.order) {
+      try {
+        let orders = [];
+        if (fs.existsSync(ORDERS_FILE)) {
+          orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
+        }
+        const exists = orders.some((o: any) => o.id === body.order.id);
+        if (!exists) {
+          orders.unshift(body.order);
+          fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8');
+        }
+      } catch (e) {
+        console.error('Error writing orders.json:', e);
+      }
+    }
+
+    if (!token || !chatId || !text) {
+      return NextResponse.json({ error: 'Token, Chat ID yoki matn yetarli emas' }, { status: 400 });
+    }
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false,
+      }),
+    });
+
+    const data = await tgRes.json();
+    return NextResponse.json(data);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

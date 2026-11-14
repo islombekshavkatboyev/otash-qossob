@@ -1,0 +1,333 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.overlayVisible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 100vw;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -10px 0 40px rgba(15, 23, 42, 0.15);
+}
+
+.drawerOpen {
+  transform: translateX(0);
+}
+
+/* Header */
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card2);
+  flex-shrink: 0;
+}
+
+.drawerTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.itemCount {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 100px;
+  color: var(--primary);
+}
+
+.closeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card2);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  background: #fef2f2;
+  color: var(--primary);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+/* Body */
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--bg-card);
+}
+
+.drawerBody::-webkit-scrollbar { width: 5px; }
+.drawerBody::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* Empty */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 56px;
+  opacity: 0.4;
+}
+
+.empty p {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.empty span {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Items */
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cartItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.cartItem:hover {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: var(--bg-card);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.cartImg {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.cartInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cartName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cartPrice {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* Qty */
+.qtyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qtyBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.qtyBtn:hover {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.4);
+  color: var(--primary);
+}
+
+.qtyLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 50px;
+  text-align: center;
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+  flex-shrink: 0;
+  padding: 4px;
+}
+
+.removeBtn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Footer */
+.drawerFooter {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+  background: var(--bg-card2);
+}
+
+.totalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.totalLabel {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.totalPrice {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+.checkoutBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  background: var(--grad-primary);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.35);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.checkoutBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.checkoutBtn:hover::before { left: 100%; }
+
+.checkoutBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(220, 38, 38, 0.45);
+}
+
+@media (max-width: 480px) {
+  .drawer {
+    width: 100vw;
+  }
+}
+
+/* Dark mode overrides */
+:global([data-theme="dark"]) .drawer {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+}
+
+:global([data-theme="dark"]) .drawerHeader {
+  background: var(--bg-card2);
+  border-color: var(--border);
+}
+
+:global([data-theme="dark"]) .cartItem {
+  background: var(--bg-card2);
+  border-color: var(--border);
+}
+
+:global([data-theme="dark"]) .cartItem:hover {
+  background: #1e293b;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+:global([data-theme="dark"]) .drawerFooter {
+  background: var(--bg-card2);
+  border-color: var(--border);
+}

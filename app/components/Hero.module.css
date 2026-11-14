@@ -1,0 +1,418 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.heroBg {
+  position: absolute;
+  inset: 0;
+  background: url('https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;
+  opacity: 0.15;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: var(--hero-overlay-grad);
+}
+
+.heroPattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(220, 38, 38, 0.04) 1px, transparent 0);
+  background-size: 36px 36px;
+}
+
+/* Orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+  animation: float 8s ease-in-out infinite;
+}
+
+.orb1 {
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(254, 202, 202, 0.8), transparent);
+  top: -120px;
+  right: 5%;
+  animation-delay: 0s;
+}
+
+.orb2 {
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(254, 243, 199, 0.8), transparent);
+  bottom: 5%;
+  left: 3%;
+  animation-delay: 3s;
+}
+
+.orb3 {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(254, 215, 170, 0.7), transparent);
+  top: 35%;
+  right: 25%;
+  animation-delay: 5s;
+}
+
+/* Content */
+.heroContent {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 70px;
+  padding-top: 130px;
+  padding-bottom: 90px;
+}
+
+/* Left */
+.heroLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.3px;
+  width: fit-content;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.08);
+  animation: fadeInUp 0.6s ease;
+}
+
+.heroBadgeDot {
+  width: 8px;
+  height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.heroTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(38px, 5.2vw, 64px);
+  font-weight: 900;
+  color: var(--text-primary);
+  line-height: 1.12;
+  letter-spacing: -1px;
+  animation: fadeInUp 0.7s ease;
+  animation-delay: 0.1s;
+  animation-fill-mode: both;
+}
+
+.heroHighlight {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 60%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+}
+
+.heroDesc {
+  font-size: 18px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  max-width: 520px;
+  animation: fadeInUp 0.7s ease;
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
+}
+
+.heroDesc strong {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.heroActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  animation: fadeInUp 0.7s ease;
+  animation-delay: 0.3s;
+  animation-fill-mode: both;
+}
+
+.heroSecondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s;
+}
+
+.heroSecondaryBtn:hover {
+  background: var(--bg-card2);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Stats */
+.heroStats {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 22px 28px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: fit-content;
+  animation: fadeInUp 0.7s ease;
+  animation-delay: 0.4s;
+  animation-fill-mode: both;
+  box-shadow: var(--shadow-md);
+}
+
+.heroStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statNum {
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #dc2626, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.heroDivider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+}
+
+/* Right */
+.heroRight {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInScale 0.8s ease;
+  animation-delay: 0.3s;
+  animation-fill-mode: both;
+}
+
+.heroImageWrap {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.heroImageGlow {
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle at 50% 50%, rgba(220, 38, 38, 0.15), transparent 70%);
+  border-radius: 50%;
+  z-index: 0;
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+.heroImage {
+  width: 100%;
+  height: 440px;
+  object-fit: cover;
+  border-radius: var(--radius-xl);
+  position: relative;
+  z-index: 1;
+  border: 4px solid var(--bg-card);
+  box-shadow: var(--shadow-lg), 0 10px 40px rgba(220, 38, 38, 0.12);
+}
+
+.heroImageBadge,
+.heroImageBadge2 {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  z-index: 2;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  font-size: 24px;
+}
+
+.heroImageBadge {
+  bottom: 24px;
+  left: -24px;
+  animation: float 3.5s ease-in-out infinite;
+}
+
+.heroImageBadge2 {
+  top: 24px;
+  right: -24px;
+  animation: float 3.5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.heroImageBadgeTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.heroImageBadgeDesc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* Wave */
+.heroWave {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.heroWave svg {
+  display: block;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .heroContent {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 48px;
+    padding-top: 110px;
+  }
+
+  .heroLeft {
+    align-items: center;
+  }
+
+  .heroDesc {
+    text-align: center;
+  }
+
+  .heroStats {
+    justify-content: center;
+  }
+
+  .heroBadge {
+    align-self: center;
+  }
+
+  .heroImageBadge {
+    left: 10px;
+    bottom: -10px;
+    font-size: 18px;
+  }
+
+  .heroImageBadge2 {
+    right: 10px;
+    top: -10px;
+    font-size: 18px;
+  }
+
+  .heroImage {
+    height: 350px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroStats {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .heroDivider {
+    display: none;
+  }
+
+  .heroTitle {
+    font-size: 32px;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+  }
+}
+
+/* Dark mode overrides */
+:global([data-theme="dark"]) .heroOverlay {
+  background: linear-gradient(
+    135deg,
+    rgba(11, 15, 25, 0.96) 0%,
+    rgba(25, 12, 18, 0.90) 45%,
+    rgba(11, 15, 25, 0.94) 80%,
+    rgba(35, 10, 15, 0.5) 100%
+  );
+}
+
+:global([data-theme="dark"]) .heroBadge {
+  background: var(--bg-card);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+:global([data-theme="dark"]) .heroStats {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+:global([data-theme="dark"]) .badgeDelivery,
+:global([data-theme="dark"]) .badgeHalol {
+  background: rgba(19, 27, 46, 0.92);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global([data-theme="dark"]) .orb1 {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.25), transparent);
+}
+:global([data-theme="dark"]) .orb2 {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent);
+}
+:global([data-theme="dark"]) .orb3 {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.2), transparent);
+}

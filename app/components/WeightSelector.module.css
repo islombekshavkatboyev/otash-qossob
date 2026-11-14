@@ -1,0 +1,121 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quickRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qBtn {
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--bg-card2);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.qBtn:hover {
+  border-color: rgba(220, 38, 38, 0.4);
+  color: var(--primary);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.qBtn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.25);
+}
+
+/* Custom input */
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInUp 0.2s ease;
+}
+
+.customInput {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.customInput:focus {
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.customUnit {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.customApply {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  border: none;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.customApply:hover {
+  background: #bbf7d0;
+  transform: scale(1.05);
+}
+
+/* Price preview */
+.pricePreview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: var(--radius);
+}
+
+.weightLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.priceLabel {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+:global([data-theme="dark"]) .pricePreview {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
