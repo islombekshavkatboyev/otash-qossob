@@ -75,6 +75,20 @@ export async function POST(req: Request) {
       }).catch(err => console.error('Error sending location:', err));
     }
 
+    // Mijozning o'z Telegram hisobi bo'lsa (va u admin bo'lmasa), mijozga tasdiq xabari yuboriladi
+    const customerChatId = body.order?.chatId;
+    if (customerChatId && String(customerChatId) !== String(chatId)) {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: customerChatId,
+          text: `✅ <b>Hurmatli ${body.order.customerName || 'Mijoz'}!</b>\n\nSizning <code>#${body.order.id}</code> raqamli go'sht buyurtmangiz qabul qilindi!\n\nTez orada operatorimiz siz bilan bog'lanadi. Buyurtmangiz holatini shu botda kuzatishingiz mumkin.`,
+          parse_mode: 'HTML',
+        }),
+      }).catch(() => {});
+    }
+
     return NextResponse.json(data);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

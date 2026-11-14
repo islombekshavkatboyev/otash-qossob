@@ -34,7 +34,6 @@
       "lng": 69.2176,
       "mapsLink": "https://maps.google.com/?q=41.2615,69.2176"
     },
-    "chatId": "6985755311",
     "rated": true,
     "rating": 5
   },
@@ -67,7 +66,6 @@
     "deliveryPrice": 0,
     "status": "done",
     "createdAt": "2026-11-14T08:36:03.773Z",
-    "chatId": 6985755311,
     "rated": true,
     "rating": 5
   },
@@ -139,7 +137,6 @@
       "lng": 69.2176,
       "mapsLink": "https://maps.google.com/?q=41.2615,69.2176"
     },
-    "chatId": 6985755311,
     "rated": true,
     "rating": 5
   }

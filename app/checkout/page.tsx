@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -34,10 +36,29 @@ export default function CheckoutPage() {
   const [location, setLocation]       = useState<{ lat: number; lng: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError]     = useState('');
+  const [customerChatId, setCustomerChatId]   = useState<string>('');
 
   const fmt = (n: number) => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-  useEffect(() => { setSettings(getSettings()); }, []);
+  useEffect(() => {
+    setSettings(getSettings());
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const paramChatId = params.get('tg_chat_id') || params.get('chat_id');
+      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+      const webAppChatId = tgUser?.id ? String(tgUser.id) : '';
+
+      const detected = paramChatId || webAppChatId;
+      if (detected) {
+        setCustomerChatId(detected);
+      }
+      if (tgUser?.first_name && !name) {
+        const full = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
+        setName(full);
+      }
+    }
+  }, []);
 
   // GPS lokatsiya aniqlash
   const getLocation = () => {
@@ -95,6 +116,7 @@ export default function CheckoutPage() {
       status: 'new',
       createdAt: new Date().toISOString(),
       location: orderLocation,
+      chatId: customerChatId || undefined,
     };
 
     // LocalStorage ga saqlash
@@ -146,10 +168,7 @@ export default function CheckoutPage() {
             token: botToken,
             chatId: chatId,
             text,
-            order: {
-              ...order,
-              chatId,
-            },
+            order,
           }),
         }).catch(() => {
           return fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

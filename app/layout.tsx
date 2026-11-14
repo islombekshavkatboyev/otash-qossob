@@ -20,6 +20,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="uz" suppressHydrationWarning>
+      <head>
+        <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+      </head>
       <body suppressHydrationWarning>
         <CartProvider>{children}</CartProvider>
       </body>

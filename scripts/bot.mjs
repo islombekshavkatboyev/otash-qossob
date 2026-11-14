@@ -396,10 +396,15 @@ async function handleMessage(msg) {
       `📞 <b>Telefon:</b> +998 90 616 87 12`,
     ].join('\n');
 
+    const siteUrl = `https://otash-qossob.vercel.app?tg_chat_id=${chatId}`;
     const extra = {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📞 Buyurtma berish (@Otabek07092000)', url: 'https://t.me/Otabek07092000' }],
+          [{ text: '🛒 Onlayn do\'kon (Buyurtma berish)', web_app: { url: siteUrl } }],
+          [
+            { text: '🌐 Brauzerda ochish', url: siteUrl },
+            { text: '📞 Bog\'lanish', url: 'https://t.me/Otabek07092000' },
+          ],
           [{ text: '📦 Buyurtmam holatini tekshirish', callback_data: 'check_status' }],
         ],
       },
@@ -411,6 +416,7 @@ async function handleMessage(msg) {
 
   // 3. Do'konga kirish (Sayt)
   if (lower.includes('do\'kon') || lower.includes('sayt') || lower === '/sayt') {
+    const siteUrl = `https://otash-qossob.vercel.app?tg_chat_id=${chatId}`;
     const siteMsg = [
       `🌐 <b>Halol Go'sht onlayn do'koni</b>`,
       '',
@@ -424,7 +430,11 @@ async function handleMessage(msg) {
     await sendMessage(chatId, siteMsg, {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '✈️ Administrator bilan bog\'lanish', url: 'https://t.me/Otabek07092000' }],
+          [{ text: '🥩 Onlayn do\'konni ochish 🛒', web_app: { url: siteUrl } }],
+          [
+            { text: '🌐 Brauzerda ochish', url: siteUrl },
+            { text: '✈️ Administrator', url: 'https://t.me/Otabek07092000' },
+          ],
           [{ text: '📦 Buyurtmam holati', callback_data: 'check_status' }],
         ],
       },
@@ -493,9 +503,10 @@ async function showOrderByIdOrPhone(chatId, query, userName) {
   }
 
   const order = matched[0];
-  if (order.chatId !== chatId) {
+  if (order.chatId !== chatId && String(chatId) !== String(ADMIN_CHAT_ID)) {
     order.chatId = chatId;
     saveOrders(orders);
+    await sendMessage(chatId, `✅ <b>#${order.id}</b> raqamli buyurtmangiz ushbu Telegramingizga biriktirildi. Holat o'zgarganda sizga xabar yuboriladi!`);
   }
   await sendOrderCard(chatId, order);
 }
@@ -514,9 +525,10 @@ async function showOrderByPhone(chatId, cleanPhone, userName) {
   }
 
   const order = matched[0];
-  if (order.chatId !== chatId) {
+  if (order.chatId !== chatId && String(chatId) !== String(ADMIN_CHAT_ID)) {
     order.chatId = chatId;
     saveOrders(orders);
+    await sendMessage(chatId, `✅ <b>#${order.id}</b> raqamli buyurtmangiz ushbu Telegramingizga biriktirildi. Holat o'zgarganda sizga xabar yuboriladi!`);
   }
   await sendOrderCard(chatId, order);
 }
@@ -597,8 +609,8 @@ async function handleCallbackQuery(cq) {
       });
     }
 
-    // Notify Customer if customer chatId exists and is not the same as this chat
-    if (order.chatId && String(order.chatId) !== String(chatId)) {
+    // Notify Customer if customer chatId exists and is not admin
+    if (order.chatId && String(order.chatId) !== String(ADMIN_CHAT_ID) && String(order.chatId) !== String(chatId)) {
       if (newStatus === 'confirmed') {
         await sendMessage(
           order.chatId,

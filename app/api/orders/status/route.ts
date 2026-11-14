@@ -20,8 +20,10 @@ export async function POST(req: Request) {
       const order = orders[idx];
       const botToken = process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
       const targetChatId = order.chatId;
+      const adminChatId = process.env.TELEGRAM_CHAT_ID || '6985755311';
 
-      if (targetChatId && botToken) {
+      // Faqat mijozning o'ziga yuboriladi (adminga mijoz xabarlarini tashlamaydi!)
+      if (targetChatId && String(targetChatId) !== String(adminChatId) && botToken) {
         if (status === 'done') {
           const rateText = [
             `🎉 <b>Hurmatli ${order.customerName || 'mijoz'}!</b>`,

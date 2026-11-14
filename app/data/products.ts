@@ -56,6 +56,9 @@ export interface Order {
   status: 'new' | 'confirmed' | 'cooking' | 'delivering' | 'done' | 'cancelled';
   createdAt: string;
   location?: OrderLocation;
+  chatId?: string | number;
+  rated?: boolean;
+  rating?: number;
 }
 
 // ─── Yetkazib berish zonalari ────────────────────────────────
