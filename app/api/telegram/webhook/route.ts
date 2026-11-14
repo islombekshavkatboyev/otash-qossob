@@ -3,6 +3,16 @@ import { readOrders, writeOrders, readReviews, writeReviews } from '../../../lib
 
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    service: 'Halol Gosht Telegram Webhook',
+    status: 'online',
+    admins: ADMIN_IDS,
+    timestamp: new Date().toISOString(),
+  });
+}
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9057174699:AAFZXhyddBXk4pf-caIjev1W4nd5sg0K2_U';
 const BASE_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
