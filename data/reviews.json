@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "1794642565445",
+    "targetType": "service",
+    "targetId": "service",
+    "targetName": "Yetkazib berish xizmati",
+    "userName": "Islombek Shavkatboyev",
+    "rating": 5,
+    "comment": "Telegram bot orqali baholandi (#HG-261114-120)",
+    "createdAt": "2026-11-14T07:49:25.446Z"
+  }
+]

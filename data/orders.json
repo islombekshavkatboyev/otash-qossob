@@ -27,13 +27,15 @@
     "note": "eeee",
     "totalPrice": 130000,
     "deliveryPrice": 15000,
-    "status": "confirmed",
+    "status": "done",
     "createdAt": "2026-11-14T07:45:16.939Z",
     "location": {
       "lat": 41.2615,
       "lng": 69.2176,
       "mapsLink": "https://maps.google.com/?q=41.2615,69.2176"
     },
-    "chatId": 6985755311
+    "chatId": 6985755311,
+    "rated": true,
+    "rating": 5
   }
 ]
