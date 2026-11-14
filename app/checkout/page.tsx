@@ -33,9 +33,11 @@ export default function CheckoutPage() {
   const [note, setNote]           = useState('');
 
   // GPS lokatsiya
-  const [location, setLocation]       = useState<{ lat: number; lng: number } | null>(null);
+  const [location, setLocation]               = useState<{ lat: number; lng: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError]     = useState('');
+  const [locationWarning, setLocationWarning] = useState('');
+  const [manualMapsUrl, setManualMapsUrl]     = useState('');
   const [customerChatId, setCustomerChatId]   = useState<string>('');
 
   const fmt = (n: number) => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -64,6 +66,7 @@ export default function CheckoutPage() {
   const getLocation = () => {
     setLocationLoading(true);
     setLocationError('');
+    setLocationWarning('');
     if (!navigator.geolocation) {
       setLocationError('Brauzeringiz GPS ni qo\'llamaydi.');
       setLocationLoading(false);
@@ -71,14 +74,30 @@ export default function CheckoutPage() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy || 0;
+
+        // Samarqand markazi: 39.6542, 66.9597 | Urgut: 39.4056, 67.2431
+        const targetLat = zone === 'urgut' ? 39.4056 : 39.6542;
+        const targetLng = zone === 'urgut' ? 67.2431 : 66.9597;
+        const approxDistKm = Math.round(Math.hypot((lat - targetLat) * 111, (lng - targetLng) * 85));
+
+        // Agar 80 km dan uzoq (masalan Toshkent IP provayderi) yoki aniqlik past bo'lsa
+        if (approxDistKm > 80 || accuracy > 5000) {
+          setLocationWarning(
+            `⚠️ Diqqat: Kompyuter/Wi-Fi orqali kirganingiz sababli internet provayder (Toshkent shlyuzi) koordinatasi olindi (taxminan ${approxDistKm} km uzoqda). Agar Samarqand/Urgutda bo'lsangiz, buyurtmani smartfoningizdan bering yoki "O'chirish" tugmasini bosib, manzilni matn sifatida yozing.`
+          );
+        }
+
+        setLocation({ lat, lng });
         setLocationLoading(false);
       },
       () => {
         setLocationError('Ruxsat berilmadi yoki aniqlab bo\'lmadi. Manzilni qo\'lda kiriting.');
         setLocationLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 
@@ -98,9 +117,27 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     const id = generateOrderId();
-    const orderLocation = location
+    let orderLocation: { lat: number; lng: number; mapsLink: string } | undefined = location
       ? { lat: location.lat, lng: location.lng, mapsLink: `https://maps.google.com/?q=${location.lat},${location.lng}` }
       : undefined;
+
+    if (!orderLocation && manualMapsUrl.trim()) {
+      const url = manualMapsUrl.trim();
+      const match = url.match(/([0-9]+\.[0-9]+)[,\s]+([0-9]+\.[0-9]+)/);
+      if (match) {
+        orderLocation = {
+          lat: parseFloat(match[1]),
+          lng: parseFloat(match[2]),
+          mapsLink: url.startsWith('http') ? url : `https://maps.google.com/?q=${match[1]},${match[2]}`
+        };
+      } else {
+        orderLocation = {
+          lat: zone === 'urgut' ? 39.4056 : 39.6542,
+          lng: zone === 'urgut' ? 67.2431 : 66.9597,
+          mapsLink: url.startsWith('http') ? url : `https://${url}`
+        };
+      }
+    }
     const order: Order = {
       id,
       items,
@@ -405,36 +442,74 @@ export default function CheckoutPage() {
           {deliveryType === 'delivery' && (
             <div className={styles.locationCard}>
               <h2 className={styles.cardTitle}>📍 Joylashuvingizni ulashing (ixtiyoriy)</h2>
-              <p className={styles.locationHint}>Kuryer tezroq topishi uchun GPS joylashuvingizni yuboring</p>
+              <p className={styles.locationHint}>
+                Kuryer tezroq topishi uchun smartfoningizdan GPS joylashuvni aniqlang yoki xarita havolasini kiriting.
+              </p>
+
               {!location ? (
-                <button
-                  type="button"
-                  className={styles.locationBtn}
-                  onClick={getLocation}
-                  disabled={locationLoading}
-                >
-                  {locationLoading ? '⏳ Aniqlanmoqda...' : '📍 Joylashuvimni aniqlash'}
-                </button>
-              ) : (
-                <div className={styles.locationResult}>
-                  <span className={styles.locationCoords}>
-                    ✅ {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
-                  </span>
-                  <a
-                    href={`https://maps.google.com/?q=${location.lat},${location.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.mapsLink}
-                  >
-                    🗺️ Google Maps&apos;da ko&apos;rish
-                  </a>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <button
                     type="button"
-                    className={styles.locationClearBtn}
-                    onClick={() => setLocation(null)}
+                    className={styles.locationBtn}
+                    onClick={getLocation}
+                    disabled={locationLoading}
                   >
-                    ✕ O&apos;chirish
+                    {locationLoading ? '⏳ Aniqlanmoqda...' : '📍 Joylashuvimni aniqlash'}
                   </button>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Yoki Google/Yandex xarita havolasini (link) kiriting:
+                    </label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="Masalan: https://maps.app.goo.gl/... yoki 39.654, 66.959"
+                      value={manualMapsUrl}
+                      onChange={e => setManualMapsUrl(e.target.value)}
+                      style={{ padding: '10px 14px', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className={styles.locationResult}>
+                    <span className={styles.locationCoords}>
+                      ✅ {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+                    </span>
+                    <a
+                      href={`https://maps.google.com/?q=${location.lat},${location.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.mapsLink}
+                    >
+                      🗺️ Google Maps&apos;da ko&apos;rish
+                    </a>
+                    <button
+                      type="button"
+                      className={styles.locationClearBtn}
+                      onClick={() => {
+                        setLocation(null);
+                        setLocationWarning('');
+                      }}
+                    >
+                      ✕ O&apos;chirish
+                    </button>
+                  </div>
+
+                  {locationWarning && (
+                    <div style={{
+                      background: '#fffbeb',
+                      border: '1px solid #fde68a',
+                      color: '#b45309',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      lineHeight: '1.45'
+                    }}>
+                      {locationWarning}
+                    </div>
+                  )}
                 </div>
               )}
               {locationError && <p className={styles.locationError}>{locationError}</p>}
