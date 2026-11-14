@@ -1,5 +1,41 @@
 [
   {
+    "id": "HG-261114-325",
+    "items": [
+      {
+        "product": {
+          "id": "2",
+          "name": "Qo'y go'shti",
+          "nameUz": "Qo'y go'shti",
+          "description": "Mazali va to'yimli qo'y go'shti. Sho'rva, dimlama va kabob uchun eng mos go'sht.",
+          "price": 150000,
+          "image": "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=600&q=80",
+          "category": "qoy",
+          "unit": "kg",
+          "inStock": true
+        },
+        "weightG": 1500
+      }
+    ],
+    "customerName": "Islombek Shavkatboyev",
+    "phone": "993545108",
+    "address": "12",
+    "deliveryType": "delivery",
+    "deliveryZone": "samarqand",
+    "paymentType": "cash",
+    "note": "11",
+    "totalPrice": 225000,
+    "deliveryPrice": 15000,
+    "status": "new",
+    "createdAt": "2026-11-14T11:13:17.865Z",
+    "location": {
+      "lat": 41.2615,
+      "lng": 69.2176,
+      "mapsLink": "https://maps.google.com/?q=41.2615,69.2176"
+    },
+    "chatId": "426389484"
+  },
+  {
     "id": "HG-261114-214",
     "items": [
       {
